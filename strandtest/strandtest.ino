@@ -20,6 +20,9 @@ Adafruit_DotStar strip2 = Adafruit_DotStar(
   NUMPIXELS, DATAPIN2, CLOCKPIN2, DOTSTAR_BRG);
 
 volatile byte revolutions;
+volatile byte revolutionTimer;
+volatile byte revolutionTime;
+volatile byte revolutionDelta;
 volatile bool hallDetected;
 
 int      head  = 0, tail = -10; // Index of first 'on' and 'off' pixels
@@ -35,19 +38,41 @@ void setup() {
   strip2.show();
 
   hallDetected = false;
-  revolutions = 0;
+  revolutions = revolutionTimer = revolutionTime = revolutionDelta = millis();
 
   // Enable specialized pin intterupts 
-  enableInterruptPin(HALLPIN);
-  enableInterruptPin(IRPIN);
+  //enableInterruptPin(HALLPIN);
+  //enableInterruptPin(IRPIN);
 }
 
 void loop() {
-  // if idling write code before goToSleep()
-  interruptSleep();
-  // normal looping code after goToSleep()
+  // if idling write code before interrupt sleep
+  //interruptSleep();
+  // normal looping code after interrupt sleep
 
-  if(hallDetected) {
+  revolutionTime = revolutionTimer;
+  revolutionTimer = millis();
+  revolutionDelta = revolutionTimer - revolutionTime;
+  
+  if(digitalRead(HALLPIN) == LOW) {
+    revolutions++;
+    //revolutionDelta = revolutionTimer;
+    //revolutionTimer = 0;
+    /*for(int i = 0; i < NUMPIXELS; i++) {
+      strip1.setPixelColor(i, 0xFF0000);
+      strip2.setPixelColor(i, 0);
+    }
+    
+    delay(revolutionDelta / 2 * 1000);
+    strip1.show();
+    strip2.show();
+  }*/ 
+
+  /*for(int i = 0; i < NUMPIXELS; i++) {
+      strip2.setPixelColor(i, 0xFF0000);
+      strip1.setPixelColor(i, 0);
+  }*/
+
     strip1.setPixelColor(head, color); // 'On' pixel at head
     strip1.setPixelColor(tail, 0);     // 'Off' pixel at tail
     strip1.show();                     // Refresh strip
@@ -64,7 +89,8 @@ void loop() {
         color = 0xFF0000;             //   Yes, reset to red
     }
     if(++tail >= NUMPIXELS) tail = 0; // Increment, reset tail index
-  } 
+  }
+  
 }
 
 
@@ -91,6 +117,9 @@ void interruptSleep() {
 }
 
 ISR (PCINT0_vect) { // handle pin change interrupt for D8 to D13
+  revolutions++;
+  revolutionDelta = revolutionTimer;
+  revolutionTimer = 0;
   if(digitalRead(HALLPIN) == LOW) {
     hallDetected = false;
   } else {
