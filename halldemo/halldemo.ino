@@ -1,3 +1,21 @@
+/* Written by Zachary Yama for the 2015-16 University of Idaho senior capstone project with 
+ * client Dr. Rinker and lead instructors Bruce Bolden and Dan Cordone.
+ * 
+ * Project Start: 3/4/2016
+ * 
+ * POV prototype code. Displays a simple ring half-blue and half-red to test our concept of timing 
+ * that will be used to reset images into a still-standing state on the final product.
+ * 
+ * The outer LED is purple if the rps are indicative of the prototype's fan-motor overheating. 
+ * Otherwise, the outer LED is green. 
+ * 
+ * NOTE: Pin change interrupt code can be used to set pin as an interrupt. See functions for
+ * more details. Likely useful for wireless communication when its time to add it, as the 
+ * trinket pro only has one physical interrupt on pin 3. 
+ * 
+ */
+
+
 #include <Adafruit_DotStar.h>
 // Because conditional #includes don't work w/Arduino sketches...
 #include <SPI.h>         // COMMENT OUT THIS LINE FOR GEMMA OR TRINKET
@@ -19,15 +37,11 @@ Adafruit_DotStar strip1 = Adafruit_DotStar(
 Adafruit_DotStar strip2 = Adafruit_DotStar(
   NUMLEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BRG);
 
-volatile unsigned byte rps;  
-volatile unsigned byte revolutions;
-volatile unsigned byte revolutionDelta; // Time of a single revolution
-volatile unsigned int  revolutionTime; 
+volatile byte rps; // revolution per second
+volatile byte revolutions;
+volatile byte revolutionDelta; // Time of a single revolution
 volatile unsigned long int rpsAccumulator; // Accumulates individual revolution time for calculating rps 
-volatile unsigned long int hallStart;
-
-//int      head  = 0, tail = -10; // Index of first 'on' and 'off' pixels
-//uint32_t color = 0xFF0000;      // 'On' color (starts red)
+volatile unsigned long int hallStart; // The time in millis when the hall sensor was last detected
 
 void setup() {
 #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000L)
@@ -40,7 +54,7 @@ void setup() {
 
   // Init vars
   revolutionDelta = hallStart = millis();
-  rps = rpsAccumulator = revolutions = revolutionTime = 0; 
+  rps = rpsAccumulator = revolutions = 0; 
 
   // Enable specialized pin intterupts 
   enableInterruptPin(HALLPIN);
@@ -48,22 +62,41 @@ void setup() {
 }
 
 void loop() {
-  // 
-  if(millis() <= revolutionTime) { 
+  /* Next step: actual math behind displaying an image. 
+   *  
+   * (millis() - hallStart) = time after we saw the hall sensor last
+   * revolutionDelta / (millis() - hallStart) = percent rotation away from hallsensor
+   * revoluitonDelta / (millis() - hallStart) * 6.28 = radians away from hall sensor
+   * 
+   * Convert radian-rotation of a line on an image into a list of pixels to draw. Divide
+   * the line into the number of LEDs for one strip. For each LED (division), take its 
+   * corresponding point on the line, and find the nearest 4 pixels. Interpolate between 
+   * the colors of each pixel as a proportional percentage of the LEDs distance from each
+   * pixel, and display that new color with the LED. 
+   * 
+   * Repeat this calculation with an offset of pi for the other strip.
+   */
+  
+  /* Split the pixel data out onto two LED strips. The conditional hallStart + (revolutionDelta / 2) 
+   * is predicting the time it will take to make a half revolution based on the last revolution, 
+   * and swapping the content of the strips at that time.
+   */
+  if(millis() <= hallStart + (revolutionDelta / 2)) { // half A
     for(int i = 0; i < NUMLEDS; i++) {
       strip1.setPixelColor(i, 0xFF00FF); 
       strip2.setPixelColor(i, 0x00FF00);     
     }
-  } else {
+  } else { // half B
     for(int i = 0; i < NUMLEDS; i++) {
       strip2.setPixelColor(i, 0xFF00FF);
       strip1.setPixelColor(i, 0x00FF00); 
     }
   }
 
-  // psudo rps indicator to let me know when the prototype motor is overheating
-  // Green is good. Purple is bad -- rps is slowing down or below average.
-  if(revolutionDelta >= 170 && revolutionDelta <= 190) {
+  /* Psudo rps indicator to let me know when the prototype motor is overheating
+   * Green is good. Purple is bad -- rps is slowing down or below average.
+   */
+  if(revolutionDelta >= 160 && revolutionDelta <= 190) {
     strip1.setPixelColor(NUMLEDS - 1, 0xFF0000); // green
     strip2.setPixelColor(NUMLEDS - 1, 0xFF0000);
   } else {
@@ -77,13 +110,15 @@ void loop() {
 
 
 // ------ Intterupt Functionality ----- //
+
+// Add any interrupt pin by swapping around pin change interrupts internally.
 void enableInterruptPin(byte pin) {
     *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
     PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
     PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
 }
 
-// Use to put microcontroller to sleep. Wake on interrupt. 
+// Puts microcontroller to sleep. Wake on interrupt. 
 void sleep() {
   // Sleep states
   // SLEEP_MODE_IDLE
@@ -104,11 +139,10 @@ ISR (PCINT2_vect) { }
 
 // handle pin change interrupt for D8 to D13
 ISR (PCINT0_vect) { 
-  if(digitalRead(HALLPIN) == LOW) { // Hall sensor detected 
+  if(digitalRead(HALLPIN) == LOW) { // hall sensor interrupt; update timings
     revolutions++;
     revolutionDelta = millis() - hallStart; 
     hallStart = millis();
-    revolutionTime = hallStart + (revolutionDelta / 2);
     rpsAccumulator += revolutionDelta; 
     if(rpsAccumulator >= 1000) { // Dealing in milliseconds
       rps = rpsAccumulator / 1000; 
