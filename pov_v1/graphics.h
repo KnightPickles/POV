@@ -6,7 +6,7 @@
 #define PALETTE8  2
 #define TRUECOLOR 3
 
-#define NUM_LEDS 50
+#define NUM_LEDS 7
 
 // oneStrip.gif ------------------------------------------------------------
 
@@ -20,8 +20,7 @@ const uint8_t PROGMEM pixels00[] = {
   0X00, 0X00, 0X00, 0X00, 0X00, 0X2A, 0X00, 0X00,
   0X00, 0X00, 0X00, 0X00, 0X00, 0X00, 0X00, 0X00,
   0X00, 0X00, 0X00, 0X2A, 0X00, 0X00, 0X00, 0X00,
-  0X00, 0X00, 0X000X000X000X000X000X00
-  0X00 };
+  0X00, 0X00, 0X00, 0X00 };
 
 // twoStrip.gif ------------------------------------------------------------
 

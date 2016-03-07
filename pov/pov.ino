@@ -49,17 +49,17 @@ typedef uint16_t line_t;
 // Ideally you use hardware SPI as it's much faster, though limited to
 // specific pins.  If you really need to bitbang DotStar data & clock on
 // different pins, optionally define those here:
-//#define LED_DATA_PIN  0
-//#define LED_CLOCK_PIN 1
+#define LED_DATA_PIN  3
+#define LED_CLOCK_PIN 4
 
 // Empty and full thresholds (millivolts) used for battery level display:
 #define BATT_MIN_MV 3100 // Some headroom over battery cutoff near 2.9V
 #define BATT_MAX_MV 4100 // And little below fresh-charged battery near 4.1V
 
-boolean autoCycle = true; // Set to true to cycle images by default
+boolean autoCycle = false; // Set to true to cycle images by default
 #define CYCLE_TIME 15     // Time, in seconds, between auto-cycle images
 
-#define IR_PIN     3      // MUST be INT1 pin!
+#define IR_PIN     12      // MUST be INT1 pin!
 
 // Adafruit IR Remote Codes:
 //   Button       Code         Button  Code
@@ -137,7 +137,7 @@ void showBatteryLevel(void) {
 
 uint32_t lastImageTime = 0L, // Time of last image change
          lastLineTime  = 0L;
-uint8_t  imageNumber   = 0,  // Current image being displayed
+uint8_t  imageNumber   = 1,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
         *imagePalette,       // -> palette data in PROGMEM
         *imagePixels,        // -> pixel data in PROGMEM

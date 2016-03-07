@@ -9,25 +9,26 @@
  * 
  * Displays a POV image given an array of pixel data from graphics.h 
  * 
- * NOTE: Pin change interrupt code can be used to set pin as an interrupt. See functions for
- * more details. Likely useful for wireless communication when its time to add it, as the 
- * trinket pro only has one physical interrupt on pin 3. 
+ * NOTE: Pin change interrupt code can be used to set any pin as an interrupt. See functions 
+ * for more details. Likely useful for wireless communication when its time to add it, as the 
+ * trinket pro only has one physical interrupt on pin 3 (INT1). 
+ * 
+ * "graphics.h" is auto-generated from the python script "convert.py". It takes a set of images
+ * in its directory and re-formats their data into pixel and corresponding pallate arrays. They
+ * are converted using as little data as possible so that few-colored images can fit on the trinket's
+ * 28k of memory. SPI calls are used to access the program-space as if it were flash storage. 
  * 
  */
 
 #include <Arduino.h>
 #include <Adafruit_DotStar.h>
-// Because conditional #includes don't work w/Arduino sketches...
-#include <SPI.h>         // COMMENT OUT THIS LINE FOR GEMMA OR TRINKET
-#include <avr/power.h> // ENABLE THIS LINE FOR GEMMA OR TRINKET
+#include <SPI.h>       
+#include <avr/power.h> 
 #include <avr/sleep.h>
 
 typedef uint16_t line_t; 
 
 #include "graphics.h"
-
-
-#define NUMLEDS 7 // Number of LEDs in strip
 
 #define IRPIN       10
 #define HALLPIN     8
@@ -37,10 +38,10 @@ typedef uint16_t line_t;
 #define CLOCKPIN2   6
 
 Adafruit_DotStar strip1 = Adafruit_DotStar(
-  NUMLEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BRG);
+  NUM_LEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
 
 Adafruit_DotStar strip2 = Adafruit_DotStar(
-  NUMLEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BRG);
+  NUM_LEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
 
 volatile byte rps, // revolution per second
               revolutions,
@@ -48,7 +49,7 @@ volatile byte rps, // revolution per second
 volatile uint32_t rpsAccumulator, // Accumulates individual revolution time for calculating rps 
                   hallStart; // The time in millis when the hall sensor was last detected
 
-uint8_t  imageNumber   = 0,  // Current image being displayed
+uint8_t  imageNumber   = 1,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
         *imagePalette,       // -> palette data in PROGMEM
         *imagePixels,        // -> pixel data in PROGMEM
@@ -67,6 +68,7 @@ void setup() {
 
   imageInit();   // Initialize pointers for default image
 
+  // Initialize image stabilizing variables
   revolutionDelta = hallStart = millis();
   rps = rpsAccumulator = revolutions = 0; 
 
@@ -75,9 +77,24 @@ void setup() {
   //enableInterruptPin(IRPIN);
 }
 
+// Initialize global image state for current imageNumber
+void imageInit() { 
+  imageType    = pgm_read_byte(&images[imageNumber].type);
+  imageLines   = pgm_read_word(&images[imageNumber].lines);
+  imageLine    = 0;
+  imagePalette = (uint8_t *)pgm_read_word(&images[imageNumber].palette);
+  imagePixels  = (uint8_t *)pgm_read_word(&images[imageNumber].pixels);
+  // 1- and 4-bit images have their color palette loaded into RAM both for
+  // faster access and to allow dynamic color changing.  Not done w/8-bit
+  // because that would require inordinate RAM (328P could handle it, but
+  // I'd rather keep the RAM free for other features in the future).
+  if(imageType == PALETTE1)      memcpy_P(palette, imagePalette,  2 * 3);
+  else if(imageType == PALETTE4) memcpy_P(palette, imagePalette, 16 * 3);
+}
+
 void loop() {
   uint32_t t = millis(); // Current time, milliseconds
-
+  
   switch(imageType) {
     case PALETTE1: { // 1-bit (2 color) palette-based image
       uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
@@ -151,18 +168,20 @@ void loop() {
    * 
    * Repeat this calculation with an offset of pi for the other strip.
    */
+
+  
   
   /* Split the pixel data out onto two LED strips. The conditional hallStart + (revolutionDelta / 2) 
    * is predicting the time it will take to make a half revolution based on the last revolution, 
    * and swapping the content of the strips at that time.
    */
-  if(millis() <= hallStart + (revolutionDelta / 2)) { // half A
-    for(int i = 0; i < NUMLEDS; i++) {
+  /*if(millis() <= hallStart + (revolutionDelta / 2)) { // half A
+    for(int i = 0; i < NUM_LEDS; i++) {
       strip1.setPixelColor(i, 0xFF00FF); 
       strip2.setPixelColor(i, 0x00FF00);     
     }
   } else { // half B
-    for(int i = 0; i < NUMLEDS; i++) {
+    for(int i = 0; i < NUM_LEDS; i++) {
       strip2.setPixelColor(i, 0xFF00FF);
       strip1.setPixelColor(i, 0x00FF00); 
     }
@@ -171,31 +190,16 @@ void loop() {
   /* Psudo rps indicator to let me know when the prototype motor is overheating
    * Green is good. Purple is bad -- rps is slowing down or below average.
    */
-  if(revolutionDelta >= 160 && revolutionDelta <= 190) {
-    strip1.setPixelColor(NUMLEDS - 1, 0xFF0000); // green
-    strip2.setPixelColor(NUMLEDS - 1, 0xFF0000);
+  /*if(revolutionDelta >= 160 && revolutionDelta <= 190) {
+    strip1.setPixelColor(NUM_LEDS - 1, 0xFF0000); // green
+    strip2.setPixelColor(NUM_LEDS - 1, 0xFF0000);
   } else {
-    strip1.setPixelColor(NUMLEDS - 1, 0x00FFFF); // purple
-    strip2.setPixelColor(NUMLEDS - 1, 0x00FFFF);
-  }
+    strip1.setPixelColor(NUM_LEDS - 1, 0x00FFFF); // purple
+    strip2.setPixelColor(NUM_LEDS - 1, 0x00FFFF);
+  }*/
 
   strip1.show();   
   strip2.show();
-}
-
-void imageInit() { // Initialize global image state for current imageNumber
-  imageType    = pgm_read_byte(&images[imageNumber].type);
-  imageLines   = pgm_read_word(&images[imageNumber].lines);
-  imageLine    = 0;
-  imagePalette = (uint8_t *)pgm_read_word(&images[imageNumber].palette);
-  imagePixels  = (uint8_t *)pgm_read_word(&images[imageNumber].pixels);
-  // 1- and 4-bit images have their color palette loaded into RAM both for
-  // faster access and to allow dynamic color changing.  Not done w/8-bit
-  // because that would require inordinate RAM (328P could handle it, but
-  // I'd rather keep the RAM free for other features in the future).
-  if(imageType == PALETTE1)      memcpy_P(palette, imagePalette,  2 * 3);
-  else if(imageType == PALETTE4) memcpy_P(palette, imagePalette, 16 * 3);
-  lastImageTime = millis(); // Save time of image init for next auto-cycle
 }
 
 // ------ Intterupt Functionality ----- //
