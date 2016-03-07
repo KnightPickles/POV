@@ -53,8 +53,8 @@ typedef uint16_t line_t;
 //#define LED_CLOCK_PIN 1
 
 // Empty and full thresholds (millivolts) used for battery level display:
-#define BATT_MIN_MV 3350 // Some headroom over battery cutoff near 2.9V
-#define BATT_MAX_MV 4000 // And little below fresh-charged battery near 4.1V
+#define BATT_MIN_MV 3100 // Some headroom over battery cutoff near 2.9V
+#define BATT_MAX_MV 4100 // And little below fresh-charged battery near 4.1V
 
 boolean autoCycle = true; // Set to true to cycle images by default
 #define CYCLE_TIME 15     // Time, in seconds, between auto-cycle images
