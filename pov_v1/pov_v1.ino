@@ -37,6 +37,19 @@ typedef uint16_t line_t;
 #define DATAPIN2    5
 #define CLOCKPIN2   6
 
+typedef struct {
+  uint8_t r, g, b;
+  float percent; 
+} color;
+
+typedef struct {
+  float x, y;
+  color c; 
+} pixel;
+
+pixel nearest4[4]; 
+pixel leds[NUM_LEDS];
+
 Adafruit_DotStar strip1 = Adafruit_DotStar(
   NUM_LEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
 
@@ -94,6 +107,40 @@ void imageInit() {
 
 void loop() {
   uint32_t t = millis(); // Current time, milliseconds
+
+  // Have to do it twice btw
+  uint32_t radPos = revolutionDelta / (t - hallStart) * 6.28;
+  for(int i = 0; i < NUM_LEDS; i++) {
+    // Radial position
+    leds[i].x = (imageLines / 2) + (imageLines / 2 / i) * cos(radPos);
+    leds[i].y = (imageLines / 2) + (imageLines / 2 / i) * sin(radPos);
+
+    // Pos of nearest 4 pixels counterclockwise starting with A.0 in top left, C.2 in bot right
+    for(int j = 0; j < 4; j++) {
+      nearest4[j].x = j < 1 || j > 2 ? floor(leds[i].x) : ceil(leds[i].x);
+      nearest4[j].y = j <= 1 ? ceil(leds[i].y) : floor(leds[i].y);
+    }
+
+    // GET COLOR FOR NEAREST 4 HERE 
+
+    // Interpolate between colors based on proportionate percentage. 
+    // Bounding box for strip
+    float percX = (leds[i].x - nearest4[0].x) / abs(nearest4[0].x - nearest4[2].x);
+    float percY = (leds[i].y - nearest4[0].y) / abs(nearest4[0].y - nearest4[2].y); 
+
+    // Apply percentages of each nearest pixel and blend into one color. 
+    color c; 
+    for(int j = 0; j < 4; j++) {
+      nearest4[j].c.percent = ((j < 1 || j > 2 ? 1 : 0) - percX + (j <= 2 ? 1 : 0) - percY) / 4;
+      // blend color while we're here
+      c.r += nearest4[j].c.r * nearest4[j].c.percent; 
+      c.b += nearest4[j].c.g * nearest4[j].c.percent; 
+      c.g += nearest4[j].c.b * nearest4[j].c.percent; 
+    }
+
+    //leds[i].c = c; 
+    strip1.setPixelColor(i, c.r, c.g, c.b);
+  }
   
   switch(imageType) {
     case PALETTE1: { // 1-bit (2 color) palette-based image
