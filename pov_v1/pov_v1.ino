@@ -108,17 +108,25 @@ void imageInit() {
 void loop() {
   uint32_t t = millis(); // Current time, milliseconds
 
-  // Have to do it twice btw
+  // Have to do it twice; for offset of leds by pi 
   uint32_t radPos = revolutionDelta / (t - hallStart) * 6.28;
-  for(int i = 0; i < NUM_LEDS; i++) {
-    // Radial position
-    leds[i].x = (imageLines / 2) + (imageLines / 2 / i) * cos(radPos);
-    leds[i].y = (imageLines / 2) + (imageLines / 2 / i) * sin(radPos);
+  for(int i = 0; i < NUM_LEDS / 2; i++) {
+    // Radial position to quadratic.
+    leds[i].x = (imageLines / 2) + (imageLines / 2 / (NUM_LEDS / 2 - i)) * cos(radPos);
+    leds[i].y = (imageLines / 2) + (imageLines / 2 / (NUM_LEDS / 2 - i)) * sin(radPos);
 
     // Pos of nearest 4 pixels counterclockwise starting with A.0 in top left, C.2 in bot right
     for(int j = 0; j < 4; j++) {
       nearest4[j].x = j < 1 || j > 2 ? floor(leds[i].x) : ceil(leds[i].x);
       nearest4[j].y = j <= 1 ? ceil(leds[i].y) : floor(leds[i].y);
+
+      uint8_t p1, p2, *ptr; 
+      ptr = (uint8_t *)&imagePixels[int(nearest4[j].y * imageLines + nearest4[j].x) / 2];
+      p2  = pgm_read_byte(ptr++); // Data for two pixels... [ex 0x21]
+      p1  = p2 >> 4;              // Shift down 4 bits for first pixel [2 in 0x21]
+      p2 &= 0x0F;                 // Mask out low 4 bits for second pixel [1 in 0x21]
+      strip1.setPixelColor(i, palette[p1][0], palette[p1][1], palette[p1][2]); // Color rgb from palette 
+      strip1.setPixelColor(i + 1, palette[p2][0], palette[p2][1], palette[p2][2]);
     }
 
     // GET COLOR FOR NEAREST 4 HERE 

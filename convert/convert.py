@@ -24,9 +24,9 @@ import sys
 # capacity and desired run time.
 
 # These you can edit to match your build:
-batterySize    = 150  # Battery capacity, in milliamp-hours (mAh)
-runTime        = 1.1  # Est. max run time, in hours (longer = dimmer LEDs)
-parallelStrips = 2    # Same data is issued to this many LED strips
+batterySize    = 2150  # Battery capacity, in milliamp-hours (mAh)
+runTime        = 0.1  # Est. max run time, in hours (longer = dimmer LEDs)
+parallelStrips = 1    # Same data is issued to this many LED strips
 
 # These probably don't need editing:
 mcuCurrent     = 20   # Est. current used by microcontrolled board (mA)
@@ -74,7 +74,7 @@ def writeByte(n):
 
 # --------------------------------------------------------------------------
 
-numLEDs = 7
+numLEDs = 14
 images  = []
 
 # Initial pass loads each image & tracks tallest size overall
