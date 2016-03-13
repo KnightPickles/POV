@@ -22,7 +22,7 @@
 #include <avr/power.h> // ENABLE THIS LINE FOR GEMMA OR TRINKET
 #include <avr/sleep.h>
 
-#define NUMLEDS 7 // Number of LEDs in strip
+#define NUMLEDS 60 // Number of LEDs in strip
 
 #define IRPIN       10
 #define HALLPIN     8
