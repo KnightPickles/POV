@@ -15,8 +15,8 @@
  * 
  * "graphics.h" is auto-generated from the python script "convert.py". It takes a set of images
  * in its directory and re-formats their data into pixel and corresponding pallate arrays. They
- * are converted using as little data as possible so that few-colored images can fit on the trinket's
- * 28k of memory. SPI calls are used to access the program-space as if it were flash storage. 
+ * are converted into as few bytes as possible so that few-colored images can fit on the trinket's
+ * 28k memory. SPI calls are used to access the program-space as if it were flash storage. 
  * 
  */
 
@@ -38,13 +38,8 @@ typedef uint16_t line_t;
 #define CLOCKPIN2   6
 
 typedef struct {
-  uint8_t r, g, b;
-  float percent; 
-} color;
-
-typedef struct {
   float x, y;
-  color c; 
+  uint8_t r, g, b;
 } pixel;
 
 pixel nearest4[4]; 
@@ -62,7 +57,7 @@ volatile byte rps, // revolution per second
 volatile uint32_t rpsAccumulator, // Accumulates individual revolution time for calculating rps 
                   hallStart; // The time in millis when the hall sensor was last detected
 
-uint8_t  imageNumber   = 1,  // Current image being displayed
+uint8_t  imageNumber   = 0,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
         *imagePalette,       // -> palette data in PROGMEM
         *imagePixels,        // -> pixel data in PROGMEM
@@ -107,29 +102,39 @@ void imageInit() {
 
 void loop() {
   uint32_t t = millis(); // Current time, milliseconds
-
-  // Have to do it twice; for offset of leds by pi 
   uint32_t radPos = revolutionDelta / (t - hallStart) * 6.28;
+  
   for(int i = 0; i < NUM_LEDS / 2; i++) {
     // Radial position to quadratic.
-    leds[i].x = (imageLines / 2) + (imageLines / 2 / (NUM_LEDS / 2 - i)) * cos(radPos);
-    leds[i].y = (imageLines / 2) + (imageLines / 2 / (NUM_LEDS / 2 - i)) * sin(radPos);
+    leds[i].x = (NUM_LEDS / 2) + i * cos(radPos);
+    leds[i].y = (NUM_LEDS / 2) + i * sin(radPos);
+    //leds[int(i + NUM_LEDS / 2)].x = (NUM_LEDS / 2) + (i + NUM_LEDS / 2) * cos(radPos + 3.14);
+    //leds[int(i + NUM_LEDS / 2)].y = (NUM_LEDS / 2) + (i + NUM_LEDS / 2) * sin(radPos + 3.14);
 
-    // Pos of nearest 4 pixels counterclockwise starting with A.0 in top left, C.2 in bot right
+    // Find pos & color of nearest 4 pixels counterclockwise starting with A.0 in top left, C.2 in bot right
     for(int j = 0; j < 4; j++) {
       nearest4[j].x = j < 1 || j > 2 ? floor(leds[i].x) : ceil(leds[i].x);
       nearest4[j].y = j <= 1 ? ceil(leds[i].y) : floor(leds[i].y);
 
-      uint8_t p1, p2, *ptr; 
-      ptr = (uint8_t *)&imagePixels[int(nearest4[j].y * imageLines + nearest4[j].x) / 2];
-      p2  = pgm_read_byte(ptr++); // Data for two pixels... [ex 0x21]
-      p1  = p2 >> 4;              // Shift down 4 bits for first pixel [2 in 0x21]
-      p2 &= 0x0F;                 // Mask out low 4 bits for second pixel [1 in 0x21]
-      strip1.setPixelColor(i, palette[p1][0], palette[p1][1], palette[p1][2]); // Color rgb from palette 
-      strip1.setPixelColor(i + 1, palette[p2][0], palette[p2][1], palette[p2][2]);
+      // Parse x,y for color in palette
+      switch(imageType) {
+        case PALETTE4: 
+          double node = (nearest4[j].x + nearest4[j].y * imageLines) / 2;
+          uint8_t p, *ptr; 
+          ptr = (uint8_t *)&imagePixels[int(node)];
+          p = pgm_read_byte(ptr++); // Data for two pixels... [ex 0x21]
+          if(node == (int)node) { // if whole number -> pixel #1, else pixel #2
+            p >>= 4;    // Shift down 4 bits for first pixel [2 in 0x21]
+          } else {
+            p &= 0x0F;  // Mask out low 4 bits for second pixel [1 in 0x21]
+          }
+              
+          nearest4[j].r = palette[p][0];
+          nearest4[j].g = palette[p][1];
+          nearest4[j].b = palette[p][2];
+          break;
+      }
     }
-
-    // GET COLOR FOR NEAREST 4 HERE 
 
     // Interpolate between colors based on proportionate percentage. 
     // Bounding box for strip
@@ -137,20 +142,22 @@ void loop() {
     float percY = (leds[i].y - nearest4[0].y) / abs(nearest4[0].y - nearest4[2].y); 
 
     // Apply percentages of each nearest pixel and blend into one color. 
-    color c; 
+    uint8_t r, g, b;
     for(int j = 0; j < 4; j++) {
-      nearest4[j].c.percent = ((j < 1 || j > 2 ? 1 : 0) - percX + (j <= 2 ? 1 : 0) - percY) / 4;
+      float percent = ((j < 1 || j > 2 ? 1 : 0) - percX + (j <= 2 ? 1 : 0) - percY) / 4;
       // blend color while we're here
-      c.r += nearest4[j].c.r * nearest4[j].c.percent; 
-      c.b += nearest4[j].c.g * nearest4[j].c.percent; 
-      c.g += nearest4[j].c.b * nearest4[j].c.percent; 
+      r += nearest4[j].r * percent; 
+      b += nearest4[j].g * percent; 
+      g += nearest4[j].b * percent; 
     }
 
-    //leds[i].c = c; 
-    strip1.setPixelColor(i, c.r, c.g, c.b);
+    leds[i].r = r;
+    leds[i].g = g;
+    leds[i].b = b;
+    strip1.setPixelColor(i, r, g, b);
   }
   
-  switch(imageType) {
+  /*switch(imageType) {
     case PALETTE1: { // 1-bit (2 color) palette-based image
       uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
               *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS / 8];
@@ -207,7 +214,7 @@ void loop() {
     }
   }
 
-  if(++imageLine >= imageLines) imageLine = 0; // Next scanline, wrap around
+  if(++imageLine >= imageLines) imageLine = 0; // Next scanline, wrap around*/
 
   /* Next step: actual math behind displaying an image. 
    *  
