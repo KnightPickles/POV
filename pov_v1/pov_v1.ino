@@ -103,7 +103,8 @@ void imageInit() {
 void loop() {
   uint32_t t = millis(); // Current time, milliseconds
   uint32_t radPos = revolutionDelta / (t - hallStart) * 6.28;
-  
+  uint8_t r, g, b;
+
   for(int i = 0; i < NUM_LEDS / 2; i++) {
     // Radial position to quadratic.
     leds[i].x = (NUM_LEDS / 2) + i * cos(radPos);
@@ -112,7 +113,7 @@ void loop() {
     //leds[int(i + NUM_LEDS / 2)].y = (NUM_LEDS / 2) + (i + NUM_LEDS / 2) * sin(radPos + 3.14);
 
     // Find pos & color of nearest 4 pixels counterclockwise starting with A.0 in top left, C.2 in bot right
-    for(int j = 0; j < 4; j++) {
+    /*for(int j = 0; j < 4; j++) {
       nearest4[j].x = j < 1 || j > 2 ? floor(leds[i].x) : ceil(leds[i].x);
       nearest4[j].y = j <= 1 ? ceil(leds[i].y) : floor(leds[i].y);
 
@@ -133,8 +134,24 @@ void loop() {
           nearest4[j].g = palette[p][1];
           nearest4[j].b = palette[p][2];
           break;
-      }
+      }*/
+    leds[i].x = floor(leds[i].x);
+    leds[i].y = floor(leds[i].y);
+
+    double node = (leds[i].x + leds[i].y * imageLines) / 2;
+    uint8_t p, *ptr; 
+    ptr = (uint8_t *)&imagePixels[int(node)];
+    p = pgm_read_byte(ptr++); // Data for two pixels... [ex 0x21]
+    if(node == (int)node) { // if whole number -> pixel #1, else pixel #2
+      p >>= 4;    // Shift down 4 bits for first pixel [2 in 0x21]
+    } else {
+      p &= 0x0F;  // Mask out low 4 bits for second pixel [1 in 0x21]
     }
+
+    r = palette[p][0];
+    b = palette[p][1];
+    g = palette[p][2];
+
 
     // Interpolate between colors based on proportionate percentage. 
     // Bounding box for strip
@@ -142,8 +159,7 @@ void loop() {
     float percY = (leds[i].y - nearest4[0].y) / abs(nearest4[0].y - nearest4[2].y); 
 
     // Apply percentages of each nearest pixel and blend into one color. 
-    uint8_t r, g, b;
-    for(int j = 0; j < 4; j++) {
+    /*for(int j = 0; j < 4; j++) {
       float percent = ((j < 1 || j > 2 ? 1 : 0) - percX + (j <= 2 ? 1 : 0) - percY) / 4;
       // blend color while we're here
       r += nearest4[j].r * percent; 
@@ -153,8 +169,9 @@ void loop() {
 
     leds[i].r = r;
     leds[i].g = g;
-    leds[i].b = b;
+    leds[i].b = b; */
     strip1.setPixelColor(i, r, g, b);
+    strip2.setPixelColor(i, r, g, b);
   }
   
   /*switch(imageType) {
