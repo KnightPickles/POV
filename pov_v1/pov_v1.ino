@@ -56,7 +56,7 @@ volatile uint32_t rps, // revolution per second
 double x, y, px, py, percent, radPos, pi = 3.14159;
 uint8_t r, g, b, pixNode, p, *ptr;
 
-uint8_t  imageNumber   = 1,  // Current image being displayed
+uint8_t  imageNumber   = 0,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
         *imagePalette,       // -> palette data in PROGMEM
         *imagePixels,        // -> pixel data in PROGMEM
