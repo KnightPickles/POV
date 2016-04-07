@@ -33,8 +33,9 @@
 
 typedef uint16_t line_t; 
 
-#include "graphics.h"
+#include "graphics118.h"
 
+#define TOT_LEDS    59
 #define IRPIN       10
 #define HALLPIN     8
 #define DATAPIN1    3
@@ -54,7 +55,8 @@ volatile uint32_t rps, // revolution per second
                   rpsAccumulator, // Accumulates individual revolution time for calculating rps 
                   hallStart; // The time in millis when the hall sensor was last detected
 double x, y, px, py, percent, radPos, pi = 3.14159;
-uint8_t r, g, b, pixNode, p, *ptr;
+uint32_t *ptr, pixNode;
+uint8_t r, g, b, p;
 
 uint8_t  imageNumber   = 0,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
@@ -83,6 +85,16 @@ void setup() {
   // Enable specialized pin intterupts 
   enableInterruptPin(HALLPIN);
   //enableInterruptPin(IRPIN);
+
+  strip1.setBrightness(10);
+  strip2.setBrightness(10);
+
+  for(int i = NUM_LEDS; i < TOT_LEDS; i++) {
+    strip1.setPixelColor(i, 0, 0, 0);
+    strip2.setPixelColor(i, 0, 0, 0);
+  }
+  strip1.show();
+  strip2.show();
 }
 
 // Initialize global image state for current imageNumber
@@ -112,8 +124,8 @@ void loop() {
     // 7 + (0 -> i % 7 -> 0 * cos) -> 7,7
 
     // perentage position of the current pixel within a bounding box of it's nearest 4 pixels. 
-    px = (x - floor(x)) / abs(floor(x) - ceil(x));
-    py = (y - ceil(y)) / abs(ceil(y) - floor(y)); 
+    //px = (x - floor(x)) / abs(floor(x) - ceil(x));
+    //py = (y - ceil(y)) / abs(ceil(y) - floor(y)); 
 
     /* Find pos & color of nearest 4 pixels counterclockwise starting with A.0 in top left, 
      * C.2 in bot right. Take the porportionate position of the pixel within this bounding 
@@ -121,7 +133,7 @@ void loop() {
      * away. Use these four percent distances to decide how much of each pixel to blend into
      * the current position's color.
      */
-    r = g = b = 0;
+    /*r = g = b = 0;
     for(int j = 0; j < 4; j++) {
       int x4 = (j == 0 || j == 3) ? floor(x) : ceil(x);
       int y4 = j <= 1 ? ceil(y) : floor(y);
@@ -139,26 +151,26 @@ void loop() {
             p &= 0x0F;  // Mask out low 4 bits for second pixel [1 in 0x21]
           }
               
-          /*r += palette[p][0] * percent;
+          r += palette[p][0] * percent;
           g += palette[p][1] * percent;
-          b += palette[p][2] * percent;*/
+          b += palette[p][2] * percent;
           r = palette[p][0];
           g = palette[p][1];
           b = palette[p][2];
           break;
-      }  
-    }
+      }
+    }*/
    
-    /*pixNode = (x + y * imageLines) / 2;
-    ptr = (uint8_t *)&imagePixels[int(pixNode)];
+    pixNode = (x + y * NUM_LEDS) / 2;
+    ptr = (uint32_t *)&imagePixels[(int)pixNode];
     p = pgm_read_byte(ptr); // Data for two pixels... [ex 0x21]
     if(pixNode == (int)pixNode) { // if whole number -> pixel #1, else pixel #2
       p >>= 4;    // Shift down 4 bits for first pixel [2 in 0x21]
     } else {
       p &= 0x0F;  // Mask out low 4 bits for second pixel [1 in 0x21]
     }
-    strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);*/
-    strip1.setPixelColor(i, r, g, b);
+    strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
+    //strip1.setPixelColor(i, r, g, b);
   }
   
   /*switch(imageType) {
@@ -260,6 +272,8 @@ ISR (PCINT0_vect) {
       rps = rpsAccumulator / 1000; 
       rpsAccumulator = 0;
     }
+
+    strip1.setPixelColor(0, 255, 0, 0);
   }
 } 
 

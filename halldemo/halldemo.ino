@@ -27,7 +27,7 @@
 #include <avr/power.h> // ENABLE THIS LINE FOR GEMMA OR TRINKET
 #include <avr/sleep.h>
 
-#define NUMLEDS 7 // Number of LEDs in strip
+#define NUMLEDS 118 // Number of LEDs in strip
 
 #define IRPIN       10
 #define HALLPIN     8
@@ -66,8 +66,8 @@ void setup() {
   enableInterruptPin(HALLPIN);
   //enableInterruptPin(IRPIN);
 
-  //strip1.setBrightness(10);
-  //strip2.setBrightness(10);
+  strip1.setBrightness(10);
+  strip2.setBrightness(10);
   
 }
 
@@ -98,10 +98,12 @@ void loop() {
   if(radPos < pi) { // half A
     for(int i = 0; i < NUMLEDS; i++) {
       strip1.setPixelColor(i, 0xFF00FF); 
+      strip2.setPixelColor(i, 0x00FF00);     
     }
   } else {
     for(int i = 0; i < NUMLEDS; i++) {
       strip1.setPixelColor(i, 0x00FF00); 
+      strip2.setPixelColor(i, 0xFF00FF);
     }
   }
 
