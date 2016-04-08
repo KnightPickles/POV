@@ -35,7 +35,6 @@ typedef uint16_t line_t;
 
 #include "graphics118.h"
 
-#define TOT_LEDS    59
 #define IRPIN       10
 #define HALLPIN     8
 #define DATAPIN1    3
@@ -66,6 +65,11 @@ uint8_t  imageNumber   = 0,  // Current image being displayed
 line_t   imageLines,         // Number of lines in active image
          imageLine;          // Current line number in image
 
+uint32_t lastLoopTime = millis();
+int TARGET_FPS = 15;
+uint32_t OPTIMAL_TIME = 1000 / TARGET_FPS;
+uint32_t lastFpsTime = 0;
+
 
 void setup() {
 #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000L)
@@ -88,13 +92,6 @@ void setup() {
 
   strip1.setBrightness(10);
   strip2.setBrightness(10);
-
-  for(int i = NUM_LEDS; i < TOT_LEDS; i++) {
-    strip1.setPixelColor(i, 0, 0, 0);
-    strip2.setPixelColor(i, 0, 0, 0);
-  }
-  strip1.show();
-  strip2.show();
 }
 
 // Initialize global image state for current imageNumber
@@ -113,12 +110,28 @@ void imageInit() {
 }
 
 void loop() {
-  radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta;
+  //radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta;
 
-  for(int i = 0; i < NUM_LEDS / 2; i++) {
+  /*uint32_t now = millis();
+  uint32_t upL = now - lastLoopTime;
+  lastLoopTime = now;
+  double delta = upL / ((double)OPTIMAL_TIME); 
+
+  lastFpsTime += upL;
+  if(lastFpsTime >= 1000)
+    lastFpsTime = 0;*/
+
+  radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta;  
+  for(int i = 0; i < NUM_LEDS; i++) {
+
     // Radial position to quadratic.
-    x = (NUM_LEDS / 2) + i * cos(radPos);
-    y = (NUM_LEDS / 2) + i * sin(radPos);
+    if(i < NUM_LEDS / 2) {
+      x = (NUM_LEDS / 2) + i * cos(radPos);
+      y = (NUM_LEDS / 2) + i * sin(radPos);
+    } else {
+      x = (NUM_LEDS / 2) + (i % (NUM_LEDS / 2)) * cos(radPos + pi);
+      y = (NUM_LEDS / 2) + (i % (NUM_LEDS / 2)) * sin(radPos + pi);
+    }
     //leds[i].x = (NUM_LEDS / 2) + (i > NUM_LEDS / 2 ? (-i % 7) : (i % 7)) * cos(radpos);
     //leds[i].y = (NUM_LEDS / 2) + (i > NUM_LEDS / 2 ? (-i % 7) : (i % 7)) * sin(radpos);
     // 7 + (0 -> i % 7 -> 0 * cos) -> 7,7
@@ -133,17 +146,16 @@ void loop() {
      * away. Use these four percent distances to decide how much of each pixel to blend into
      * the current position's color.
      */
-    /*r = g = b = 0;
+    r = g = b = 0;
     for(int j = 0; j < 4; j++) {
       int x4 = (j == 0 || j == 3) ? floor(x) : ceil(x);
       int y4 = j <= 1 ? ceil(y) : floor(y);
       percent = ((j < 1 || j > 2 ? 1 : 0) - px + (j <= 2 ? 1 : 0) - py) / 4;
 
-      // Parse x,y for color in palette
       switch(imageType) {
         case PALETTE4: 
-          pixNode = (x4 + y4 * imageLines) / 2;
-          ptr = (uint8_t *)&imagePixels[int(pixNode)];
+          pixNode = (x4 + y4 * NUM_LEDS) / 2;
+          ptr = (uint32_t *)&imagePixels[int(pixNode)];
           p = pgm_read_byte(ptr); // Data for two pixels... [ex 0x21]
           if(pixNode == (int)pixNode) { // if whole number -> pixel #1, else pixel #2
             p >>= 4;    // Shift down 4 bits for first pixel [2 in 0x21]
@@ -154,14 +166,11 @@ void loop() {
           r += palette[p][0] * percent;
           g += palette[p][1] * percent;
           b += palette[p][2] * percent;
-          r = palette[p][0];
-          g = palette[p][1];
-          b = palette[p][2];
           break;
       }
-    }*/
+    }
    
-    pixNode = (x + y * NUM_LEDS) / 2;
+    /*pixNode = (x + y * NUM_LEDS) / 2;
     ptr = (uint32_t *)&imagePixels[(int)pixNode];
     p = pgm_read_byte(ptr); // Data for two pixels... [ex 0x21]
     if(pixNode == (int)pixNode) { // if whole number -> pixel #1, else pixel #2
@@ -169,8 +178,17 @@ void loop() {
     } else {
       p &= 0x0F;  // Mask out low 4 bits for second pixel [1 in 0x21]
     }
-    strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
-    //strip1.setPixelColor(i, r, g, b);
+    */
+    if(i < NUM_LEDS / 2) {
+      strip1.setPixelColor(i, r, g, b);
+      //strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
+    } else {
+      strip2.setPixelColor(i % (NUM_LEDS/2), r, g, b);
+      //strip2.setPixelColor(i % (NUM_LEDS/2), palette[p][0], palette[p][1], palette[p][2]);
+    }
+   
+    //strip1.setPixelColor(i % (NUM_LEDS/2), r, g, b);
+    //strip2.setPixelColor(i % (NUM_LEDS/2), r, g, b);
   }
   
   /*switch(imageType) {
@@ -230,7 +248,9 @@ void loop() {
     }
   } */
   strip1.show();   
-  //strip2.show();
+  strip2.show();
+
+  //delay((lastLoopTime - millis() + OPTIMAL_TIME) / 1000);
 }
 
 // ------ Intterupt Functionality ----- //
