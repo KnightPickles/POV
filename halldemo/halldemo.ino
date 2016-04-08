@@ -27,7 +27,7 @@
 #include <avr/power.h> // ENABLE THIS LINE FOR GEMMA OR TRINKET
 #include <avr/sleep.h>
 
-#define NUMLEDS 118 // Number of LEDs in strip
+#define NUMLEDS 144 // Number of LEDs in strip
 
 #define IRPIN       10
 #define HALLPIN     8
@@ -47,7 +47,7 @@ volatile uint32_t rps, // revolution per second
                   revolutionDelta, // Time of a single revolution
                   rpsAccumulator, // Accumulates individual revolution time for calculating rps 
                   hallStart; // The time in millis when the hall sensor was last detected
-double radPos, pi = 3.14;
+double radPos, pi = 3.14159;
 
 void setup() {
 #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000L)
@@ -66,9 +66,13 @@ void setup() {
   enableInterruptPin(HALLPIN);
   //enableInterruptPin(IRPIN);
 
-  strip1.setBrightness(10);
-  strip2.setBrightness(10);
-  
+  //strip1.setBrightness(10);
+  //strip2.setBrightness(10);
+}
+
+void render() {
+  strip1.show();   
+  strip2.show();
 }
 
 void loop() {
@@ -90,58 +94,31 @@ void loop() {
   /* Split the pixel data out onto two LED strips. The conditional hallStart + (revolutionDelta / 2) 
    * is predicting the time it will take to make a half revolution based on the last revolution, 
    * and swapping the content of the strips at that time.
-   *
-   * old calc was //millis() <= hallStart + (revolutionDelta / 2)
    */
-   
   radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta;
-  if(radPos < pi) { // half A
-    for(int i = 0; i < NUMLEDS; i++) {
+  for(int i = 0; i < NUMLEDS; i++) {
+    if(radPos < pi) {
       strip1.setPixelColor(i, 0xFF00FF); 
-      strip2.setPixelColor(i, 0x00FF00);     
-    }
-  } else {
-    for(int i = 0; i < NUMLEDS; i++) {
+      strip2.setPixelColor(i, 0x00FF00);
+    } else {
       strip1.setPixelColor(i, 0x00FF00); 
       strip2.setPixelColor(i, 0xFF00FF);
     }
   }
 
-  /*if(radPosB > 1.57 && radPosB < 0) {
-    for(int i = 0; i < NUMLEDS; i++) {
-      strip2.setPixelColor(i, 0x00FF00);     
-    }
-  } else { // half B
-    for(int i = 0; i < NUMLEDS; i++) {
-      strip2.setPixelColor(i, 0xFF00FF);
-    }
-  }*/
-  
-  /*if(radPosA < 1.57 && radPosA >= 0) { // half A
-    for(int i = 0; i < NUMLEDS; i++) {
-      strip1.setPixelColor(i, 0xFF00FF); 
-      strip2.setPixelColor(i, 0x00FF00);     
-    }
-  } else { // half B
-    for(int i = 0; i < NUMLEDS; i++) {
-      strip2.setPixelColor(i, 0xFF00FF);
-      strip1.setPixelColor(i, 0x00FF00); 
-    }
-  }*/
 
   /* Psudo rps indicator to let me know when the prototype motor is overheating
    * Green is good. Purple is bad -- rps is slowing down or below average.
    */
-  if(revolutionDelta >= 160 && revolutionDelta <= 190) {
+  /*if(revolutionDelta >= 160 && revolutionDelta <= 190) {
     strip1.setPixelColor(NUMLEDS - 1, 0xFF0000); // green
     //strip2.setPixelColor(NUMLEDS - 1, 0xFF0000);
   } else {
     strip1.setPixelColor(NUMLEDS - 1, 0x00FFFF); // purple
     //strip2.setPixelColor(NUMLEDS - 1, 0x00FFFF);
-  }
+  }*/
 
-  strip1.show();   
-  strip2.show();
+  render();
 }
 
 

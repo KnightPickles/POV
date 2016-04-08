@@ -33,7 +33,7 @@
 
 typedef uint16_t line_t; 
 
-#include "graphics118.h"
+#include "graphics14.h"
 
 #define IRPIN       10
 #define HALLPIN     8
@@ -65,10 +65,8 @@ uint8_t  imageNumber   = 0,  // Current image being displayed
 line_t   imageLines,         // Number of lines in active image
          imageLine;          // Current line number in image
 
-uint32_t lastLoopTime = millis();
-int TARGET_FPS = 15;
-uint32_t OPTIMAL_TIME = 1000 / TARGET_FPS;
-uint32_t lastFpsTime = 0;
+double accumulator, currentTime;
+float steps = 1.0f/14.0f;
 
 
 void setup() {
@@ -90,8 +88,8 @@ void setup() {
   enableInterruptPin(HALLPIN);
   //enableInterruptPin(IRPIN);
 
-  strip1.setBrightness(10);
-  strip2.setBrightness(10);
+  //strip1.setBrightness(10);
+  //strip2.setBrightness(10);
 }
 
 // Initialize global image state for current imageNumber
@@ -109,8 +107,7 @@ void imageInit() {
   else if(imageType == PALETTE4) memcpy_P(palette, imagePalette, 16 * 3);
 }
 
-
-void loop() {
+void updloop() {
   // Convert angular velocity into radial coordinates at any given point in time
   radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta; 
   
@@ -126,38 +123,6 @@ void loop() {
       x = (NUM_LEDS / 2) + (i % (NUM_LEDS / 2)) * cos(radPos + pi);
       y = (NUM_LEDS / 2) + (i % (NUM_LEDS / 2)) * sin(radPos + pi);
     }
-  
-    /* Find pos & color of nearest 4 pixels counterclockwise starting with A.0 in top left, 
-     * C.2 in bot right. Take the porportionate position of the pixel within this bounding 
-     * box and assign each of the nearest four pixels a corresponding percentage of distance
-     * away. Use these four percent distances to decide how much of each pixel to blend into
-     * the current position's color.
-     */
-
-    // Displays as if trying to work correctly, but does not improve image clarity. 
-    /*r = g = b = 0;
-    for(int j = 0; j < 4; j++) {
-      int x4 = (j == 0 || j == 3) ? floor(x) : ceil(x);
-      int y4 = j <= 1 ? ceil(y) : floor(y);
-      percent = ((j < 1 || j > 2 ? 1 : 0) - px + (j <= 2 ? 1 : 0) - py) / 4;
-
-      switch(imageType) {
-        case PALETTE4: 
-          pixNode = (x4 + y4 * NUM_LEDS) / 2;
-          ptr = (uint32_t *)&imagePixels[int(pixNode)];
-          p = pgm_read_byte(ptr); // Data for two pixels... [ex 0x21]
-          if(pixNode == (int)pixNode) { // if whole number -> pixel #1, else pixel #2
-            p >>= 4;    // Shift down 4 bits for first pixel [2 in 0x21]
-          } else {
-            p &= 0x0F;  // Mask out low 4 bits for second pixel [1 in 0x21]
-          }
-              
-          r += palette[p][0] * percent;
-          g += palette[p][1] * percent;
-          b += palette[p][2] * percent;
-          break;
-      }
-    }*/
 
     // Skip the interpolation between 4 pixels and just round down
     // For pallete 4 images only. 
@@ -171,74 +136,32 @@ void loop() {
     }
     
     if(i < NUM_LEDS / 2) {
-      //strip1.setPixelColor(i, r, g, b);
       strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
     } else {
-      //strip2.setPixelColor(i % (NUM_LEDS/2), r, g, b);
       strip2.setPixelColor(i % (NUM_LEDS/2), palette[p][0], palette[p][1], palette[p][2]);
     }
   }
 
   strip1.show();   
   strip2.show();
-  
-  /*switch(imageType) {
-    case PALETTE1: { // 1-bit (2 color) palette-based image
-      uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
-              *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS / 8];
-      for(byteNum = NUM_LEDS/8; byteNum--; ) { // Always padded to next byte
-        pixels = pgm_read_byte(ptr++);  // 8 pixels of data (pixel 0 = LSB)
-        for(bitNum = 8; bitNum--; pixels >>= 1) {
-          idx = pixels & 1; // Color table index for pixel (0 or 1)
-          strip1.setPixelColor(pixelNum++,
-            palette[idx][0], palette[idx][1], palette[idx][2]);
-        }
-      }
-      break;
-    }
+}
 
-    case PALETTE4: { // 4-bit (16 color) palette-based image
-      uint8_t  pixelNum, p1, p2,
-              *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS / 2];
-      for(pixelNum = 0; pixelNum < NUM_LEDS; ) {
-        p2  = pgm_read_byte(ptr++); // Data for two pixels...
-        p1  = p2 >> 4;              // Shift down 4 bits for first pixel
-        p2 &= 0x0F;                 // Mask out low 4 bits for second pixel
-        strip1.setPixelColor(pixelNum++,
-          palette[p1][0], palette[p1][1], palette[p1][2]);
-        strip1.setPixelColor(pixelNum++,
-          palette[p2][0], palette[p2][1], palette[p2][2]);
-      }
-      break;
-    }
 
-    case PALETTE8: { // 8-bit (256 color) PROGMEM-palette-based image
-      uint16_t  o;
-      uint8_t   pixelNum,
-               *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS];
-      for(pixelNum = 0; pixelNum < NUM_LEDS; pixelNum++) {
-        o = pgm_read_byte(ptr++) * 3; // Offset into imagePalette
-        strip1.setPixelColor(pixelNum,
-          pgm_read_byte(&imagePalette[o]),
-          pgm_read_byte(&imagePalette[o + 1]),
-          pgm_read_byte(&imagePalette[o + 2]));
-      }
-      break;
-    }
+void loop() {
+  double newTime = millis() / 1000.0;
+  double frameTime = newTime - currentTime < 0.25 ? newTime - currentTime : 0.25;
+  float deltaTime = (float)frameTime;
 
-    case TRUECOLOR: { // 24-bit ('truecolor') image (no palette)
-      uint8_t  pixelNum, r, g, b,
-              *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS * 3];
-      for(pixelNum = 0; pixelNum < NUM_LEDS; pixelNum++) {
-        r = pgm_read_byte(ptr++);
-        g = pgm_read_byte(ptr++);
-        b = pgm_read_byte(ptr++);
-        strip1.setPixelColor(pixelNum, r, g, b);
-      }
-      break;
-    }
-  } */
+  currentTime = newTime;
 
+  while (accumulator <= steps) {
+      accumulator -= steps;
+      updloop();
+  }
+
+  //strip1.show();
+  //strip2.show();
+  //entityManager.interpolate(accumulator / step);
 }
 
 // ------ Intterupt Functionality ----- //
