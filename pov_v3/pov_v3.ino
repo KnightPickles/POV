@@ -90,7 +90,7 @@ double x, y, px, py, percent, radPos, pi = 3.14159;
 
 uint32_t lastImageTime = 0L, // Time of last image change
          lastLineTime  = 0L;
-uint8_t  imageNumber   = 2,  // Current image being displayed
+uint8_t  imageNumber   = 0,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
         *imagePalette,       // -> palette data in PROGMEM
         *imagePixels,        // -> pixel data in PROGMEM

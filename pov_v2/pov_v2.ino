@@ -109,7 +109,12 @@ void imageInit() {
 
 void updloop() {
   // Convert angular velocity into radial coordinates at any given point in time
-  radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta; 
+  /*radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta; 
+  double x = (60 * radPos) / 2 * pi;
+  if(x <= (int)x + 0.05) {
+    strip1.show();   
+    strip2.show();
+  } */
   
   for(int i = 0; i < NUM_LEDS; i++) {
     //radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta; // <- no effect on performance
@@ -142,26 +147,15 @@ void updloop() {
     }
   }
 
-  strip1.show();   
-  strip2.show();
+  
 }
 
 
 void loop() {
-  double newTime = millis() / 1000.0;
-  double frameTime = newTime - currentTime < 0.25 ? newTime - currentTime : 0.25;
-  float deltaTime = (float)frameTime;
+  updloop();
 
-  currentTime = newTime;
-
-  while (accumulator <= steps) {
-      accumulator -= steps;
-      updloop();
-  }
-
-  //strip1.show();
-  //strip2.show();
-  //entityManager.interpolate(accumulator / step);
+  strip1.show();
+  strip2.show();
 }
 
 // ------ Intterupt Functionality ----- //

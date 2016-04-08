@@ -33,7 +33,7 @@
 
 typedef uint16_t line_t; 
 
-#include "graphics118.h"
+#include "graphics14.h"
 
 #define IRPIN       10
 #define HALLPIN     8
@@ -90,8 +90,8 @@ void setup() {
   enableInterruptPin(HALLPIN);
   //enableInterruptPin(IRPIN);
 
-  strip1.setBrightness(10);
-  strip2.setBrightness(10);
+  //strip1.setBrightness(10);
+  //strip2.setBrightness(10);
 }
 
 // Initialize global image state for current imageNumber
@@ -111,6 +111,13 @@ void imageInit() {
 
 
 void loop() {
+  /* Use lookup table for pi
+   * Use point arithmatic for values; no doubles or floats
+   * Constant for 2pi; 314 and 628
+   * Remove all unneeded uint32_t's and use regular ints if possible
+   * Try with halldemo first 
+   */
+  
   // Convert angular velocity into radial coordinates at any given point in time
   radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta; 
   

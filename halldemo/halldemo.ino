@@ -27,7 +27,7 @@
 #include <avr/power.h> // ENABLE THIS LINE FOR GEMMA OR TRINKET
 #include <avr/sleep.h>
 
-#define NUMLEDS 144 // Number of LEDs in strip
+#define NUMLEDS 118 // Number of LEDs in strip
 
 #define IRPIN       10
 #define HALLPIN     8
@@ -71,8 +71,11 @@ void setup() {
 }
 
 void render() {
-  strip1.show();   
-  strip2.show();
+  //double x = (10 * radPos) / 2 * pi;
+  //if((int)x % 60 == 0) {
+    strip1.show();
+    strip2.show();
+  //}
 }
 
 void loop() {
