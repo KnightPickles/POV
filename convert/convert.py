@@ -74,7 +74,7 @@ def writeByte(n):
 
 # --------------------------------------------------------------------------
 
-numLEDs = 14
+numLEDs = 0
 images  = []
 
 # Initial pass loads each image & tracks tallest size overall

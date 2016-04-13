@@ -37,7 +37,7 @@ typedef uint16_t line_t;
 
 // CONFIGURABLE STUFF ------------------------------------------------------
 
-#include "graphics.h" // Graphics data is contained in this header file.
+#include "letter14p.h" // Graphics data is contained in this header file.
 // It's generated using the 'convert.py' Python script.  Various image
 // formats are supported, trading off color fidelity for PROGMEM space.
 // Handles 1-, 4- and 8-bit-per-pixel palette-based images, plus 24-bit
@@ -61,18 +61,24 @@ typedef uint16_t line_t;
 
 #if defined(LED_DATA_PIN) && defined(LED_CLOCK_PIN)
 // Older DotStar LEDs use GBR order.  If colors are wrong, edit here.
-Adafruit_DotStar strip = Adafruit_DotStar(NUM_LEDS,
-  LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);
+Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS,
+  DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
+Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS,
+  DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
 #else
-Adafruit_DotStar strip = Adafruit_DotStar(NUM_LEDS, DOTSTAR_BGR); 
+Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS, DOTSTAR_BGR); 
+Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS, DOTSTAR_BGR); 
 #endif
 
 void     imageInit(void);
 
 void setup() {
-  strip.begin(); // Allocate DotStar buffer, init SPI
-  strip.clear(); // Make sure strip is clear
-  strip.show();  // before measuring battery
+  strip1.begin(); // Allocate DotStar buffer, init SPI
+  strip2.begin();
+  strip1.clear(); // Make sure strip is clear
+  strip2.clear();
+  strip1.show();  // before measuring battery
+  strip2.show();
 
   imageInit();   // Initialize pointers for default image
   enableInterruptPin(HALLPIN);
@@ -85,7 +91,8 @@ volatile uint32_t rps, // revolution per second
                   rpsAccumulator, // Accumulates individual revolution time for calculating rps 
                   hallStart; // The time in millis when the hall sensor was last detected
 
-double x, y, px, py, percent, radPos, pi = 3.14159;
+float x, y, px, py, percent, radPos, degPos, pi = 3.14159;
+int pideg = 180, pi2deg = 360, pi3deg = pideg + pi2deg;
 
 
 uint32_t lastImageTime = 0L, // Time of last image change
@@ -96,7 +103,8 @@ uint8_t  imageNumber   = 0,  // Current image being displayed
         *imagePixels,        // -> pixel data in PROGMEM
          palette[16][3];     // RAM-based color table for 1- or 4-bit images
 line_t   imageLines,         // Number of lines in active image
-         imageLine;          // Current line number in image
+         imageLine1,          // Current line number in image
+         imageLine2;
 
 // Microseconds per line for various speed settings
 const uint16_t PROGMEM lineTable[] = { // 375 * 2^(n/3)
@@ -114,7 +122,8 @@ uint16_t lineInterval      = 1000000L / 750;
 void imageInit() { // Initialize global image state for current imageNumber
   imageType    = pgm_read_byte(&images[imageNumber].type);
   imageLines   = pgm_read_word(&images[imageNumber].lines);
-  imageLine    = 0;
+  imageLine1   = 0;
+  imageLine2   = 0;
   imagePalette = (uint8_t *)pgm_read_word(&images[imageNumber].palette);
   imagePixels  = (uint8_t *)pgm_read_word(&images[imageNumber].pixels);
   // 1- and 4-bit images have their color palette loaded into RAM both for
@@ -140,8 +149,10 @@ void prevImage(void) {
 
 void loop() {
   uint32_t t = millis(); // Current time, milliseconds
-  radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta; 
-  imageLine = (imageLines * radPos) / 2 * pi;
+  degPos = ((millis() - hallStart) * pi2deg) / revolutionDelta; 
+  imageLine1 = (imageLines * degPos) / pi2deg;
+  imageLine2 = (imageLines * (degPos + pideg)) / pi2deg;
+  if(imageLine2 > imageLines) imageLine2 -= imageLines; // wrap
   
 
   // Transfer one scanline from pixel data to LED strip:
@@ -156,12 +167,23 @@ void loop() {
 
     case PALETTE1: { // 1-bit (2 color) palette-based image
       uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
-              *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS / 8];
+              *ptr = (uint8_t *)&imagePixels[imageLine1 * NUM_LEDS / 8];
       for(byteNum = NUM_LEDS/8; byteNum--; ) { // Always padded to next byte
         pixels = pgm_read_byte(ptr++);  // 8 pixels of data (pixel 0 = LSB)
         for(bitNum = 8; bitNum--; pixels >>= 1) {
           idx = pixels & 1; // Color table index for pixel (0 or 1)
-          strip.setPixelColor(pixelNum++,
+          strip1.setPixelColor(pixelNum++,
+            palette[idx][0], palette[idx][1], palette[idx][2]);
+        }
+      }
+
+      pixelNum = 0;
+      ptr = (uint8_t *)&imagePixels[imageLine2 * NUM_LEDS / 8];
+      for(byteNum = NUM_LEDS/8; byteNum--; ) { // Always padded to next byte
+        pixels = pgm_read_byte(ptr++);  // 8 pixels of data (pixel 0 = LSB)
+        for(bitNum = 8; bitNum--; pixels >>= 1) {
+          idx = pixels & 1; // Color table index for pixel (0 or 1)
+          strip2.setPixelColor(pixelNum++,
             palette[idx][0], palette[idx][1], palette[idx][2]);
         }
       }
@@ -170,14 +192,25 @@ void loop() {
 
     case PALETTE4: { // 4-bit (16 color) palette-based image
       uint8_t  pixelNum, p1, p2,
-              *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS / 2];
+              *ptr = (uint8_t *)&imagePixels[imageLine1 * NUM_LEDS / 2];
       for(pixelNum = 0; pixelNum < NUM_LEDS; ) {
         p2  = pgm_read_byte(ptr++); // Data for two pixels...
         p1  = p2 >> 4;              // Shift down 4 bits for first pixel
         p2 &= 0x0F;                 // Mask out low 4 bits for second pixel
-        strip.setPixelColor(pixelNum++,
+        strip1.setPixelColor(pixelNum++,
           palette[p1][0], palette[p1][1], palette[p1][2]);
-        strip.setPixelColor(pixelNum++,
+        strip1.setPixelColor(pixelNum++,
+          palette[p2][0], palette[p2][1], palette[p2][2]);
+      }
+
+      ptr = (uint8_t *)&imagePixels[imageLine2 * NUM_LEDS / 2];
+      for(pixelNum = 0; pixelNum < NUM_LEDS; ) {
+        p2  = pgm_read_byte(ptr++); // Data for two pixels...
+        p1  = p2 >> 4;              // Shift down 4 bits for first pixel
+        p2 &= 0x0F;                 // Mask out low 4 bits for second pixel
+        strip2.setPixelColor(pixelNum++,
+          palette[p1][0], palette[p1][1], palette[p1][2]);
+        strip2.setPixelColor(pixelNum++,
           palette[p2][0], palette[p2][1], palette[p2][2]);
       }
       break;
@@ -186,10 +219,19 @@ void loop() {
     case PALETTE8: { // 8-bit (256 color) PROGMEM-palette-based image
       uint16_t  o;
       uint8_t   pixelNum,
-               *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS];
+               *ptr = (uint8_t *)&imagePixels[imageLine1 * NUM_LEDS];
       for(pixelNum = 0; pixelNum < NUM_LEDS; pixelNum++) {
         o = pgm_read_byte(ptr++) * 3; // Offset into imagePalette
-        strip.setPixelColor(pixelNum,
+        strip1.setPixelColor(pixelNum,
+          pgm_read_byte(&imagePalette[o]),
+          pgm_read_byte(&imagePalette[o + 1]),
+          pgm_read_byte(&imagePalette[o + 2]));
+      }
+      
+      ptr = (uint8_t *)&imagePixels[imageLine2 * NUM_LEDS];
+      for(pixelNum = 0; pixelNum < NUM_LEDS; pixelNum++) {
+        o = pgm_read_byte(ptr++) * 3; // Offset into imagePalette
+        strip2.setPixelColor(pixelNum,
           pgm_read_byte(&imagePalette[o]),
           pgm_read_byte(&imagePalette[o + 1]),
           pgm_read_byte(&imagePalette[o + 2]));
@@ -199,12 +241,20 @@ void loop() {
 
     case TRUECOLOR: { // 24-bit ('truecolor') image (no palette)
       uint8_t  pixelNum, r, g, b,
-              *ptr = (uint8_t *)&imagePixels[imageLine * NUM_LEDS * 3];
+              *ptr = (uint8_t *)&imagePixels[imageLine1 * NUM_LEDS * 3];
       for(pixelNum = 0; pixelNum < NUM_LEDS; pixelNum++) {
         r = pgm_read_byte(ptr++);
         g = pgm_read_byte(ptr++);
         b = pgm_read_byte(ptr++);
-        strip.setPixelColor(pixelNum, r, g, b);
+        strip1.setPixelColor(pixelNum, r, g, b);
+      }
+
+      ptr = (uint8_t *)&imagePixels[imageLine2 * NUM_LEDS * 3];
+      for(pixelNum = 0; pixelNum < NUM_LEDS; pixelNum++) {
+        r = pgm_read_byte(ptr++);
+        g = pgm_read_byte(ptr++);
+        b = pgm_read_byte(ptr++);
+        strip2.setPixelColor(pixelNum, r, g, b);
       }
       break;
     }
@@ -212,7 +262,8 @@ void loop() {
 
   //if(++imageLine >= imageLines) imageLine = 0; // Next scanline, wrap around
 
-  strip.show(); // Refresh LEDs
+  strip1.show(); // Refresh LEDs
+  strip2.show();
   lastLineTime = t;
 }
 

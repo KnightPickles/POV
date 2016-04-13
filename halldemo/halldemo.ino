@@ -47,7 +47,7 @@ volatile uint32_t rps, // revolution per second
                   revolutionDelta, // Time of a single revolution
                   rpsAccumulator, // Accumulates individual revolution time for calculating rps 
                   hallStart; // The time in millis when the hall sensor was last detected
-double radPos, pi = 3.14159;
+int radPos;
 
 void setup() {
 #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000L)
@@ -70,14 +70,6 @@ void setup() {
   //strip2.setBrightness(10);
 }
 
-void render() {
-  //double x = (10 * radPos) / 2 * pi;
-  //if((int)x % 60 == 0) {
-    strip1.show();
-    strip2.show();
-  //}
-}
-
 void loop() {
   /* Next step: actual math behind displaying an image. 
    *  
@@ -98,9 +90,9 @@ void loop() {
    * is predicting the time it will take to make a half revolution based on the last revolution, 
    * and swapping the content of the strips at that time.
    */
-  radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta;
-  for(int i = 0; i < NUMLEDS; i++) {
-    if(radPos < pi) {
+  radPos = (((millis() - hallStart) * 360) / revolutionDelta) + 0.5;
+  for(int i = 0; i < 118; i++) {
+    if(radPos < 180) {
       strip1.setPixelColor(i, 0xFF00FF); 
       strip2.setPixelColor(i, 0x00FF00);
     } else {
@@ -121,7 +113,8 @@ void loop() {
     //strip2.setPixelColor(NUMLEDS - 1, 0x00FFFF);
   }*/
 
-  render();
+  strip1.show();
+  strip2.show();
 }
 
 

@@ -42,8 +42,17 @@ typedef uint16_t line_t;
 #define DATAPIN2    5
 #define CLOCKPIN2   6
 
+#define D_A2        10
+#define D_A3        11
+#define D_B2        12
+#define D_B3        13
+
 Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
 Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
+Adafruit_DotStar stripA2 = Adafruit_DotStar(NUM_LEDS, D_A2, CLOCKPIN2, DOTSTAR_BGR);
+Adafruit_DotStar stripA3 = Adafruit_DotStar(NUM_LEDS, D_A3, CLOCKPIN2, DOTSTAR_BGR);
+Adafruit_DotStar stripB2 = Adafruit_DotStar(NUM_LEDS, D_B2, CLOCKPIN2, DOTSTAR_BGR);
+Adafruit_DotStar stripB3 = Adafruit_DotStar(NUM_LEDS, D_B3, CLOCKPIN2, DOTSTAR_BGR);
 
 volatile uint32_t rps, // revolution per second
                   revolutions,
@@ -54,6 +63,7 @@ double px, py, percent, radPos, degPos, pi = 3.14159, pi2 = 2 * pi, dpi = 180, d
 uint32_t *ptr, pixNode;
 uint8_t r, g, b, p, x, y;
 int halfLEDS = NUM_LEDS / 2;
+int sixthLEDS = NUM_LEDS / 6;
 
 uint8_t  imageNumber   = 0,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
@@ -106,11 +116,16 @@ void loop() {
   // Convert angular velocity into degrees at any given point in time
   degPos = ((micros() - hallStart) * 360) / revolutionDelta; 
     
-  for(int i = 0; i < NUM_LEDS; i++) {  
-    if(i < halfLEDS) { // For LED strip 1
+  for(int i = 0; i < NUM_LEDS; i++) { 
+    stripA2.setPixelColor(i, 0,0,0);
+    stripA3.setPixelColor(i, 0,0,0);
+    stripB2.setPixelColor(i, 0,0,0);
+    stripB3.setPixelColor(i, 0,0,0);
+    
+    if(i < halfLEDS) { // For LED strip A
       x = halfLEDS + i * icos(degPos);
       y = halfLEDS + i * isin(degPos);
-    } else { // For LED strip 2
+    } else { // For LED strip B
       x = halfLEDS + (i - halfLEDS) * icos(degPos + 180);
       y = halfLEDS + (i - halfLEDS) * isin(degPos + 180);
     }
@@ -172,6 +187,10 @@ void loop() {
 
   strip1.show();   
   strip2.show();
+  stripA2.show();
+  stripA3.show();
+  stripB2.show();
+  stripB3.show();
 }
 
 // ------ Intterupt Functionality ----- //
