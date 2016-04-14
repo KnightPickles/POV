@@ -52,10 +52,10 @@ typedef uint16_t line_t;
 #define LED_DATA_PIN  3
 #define LED_CLOCK_PIN 4
 #define HALLPIN     8
-#define DATAPIN1    3
-#define CLOCKPIN1   4
-#define DATAPIN2    5
-#define CLOCKPIN2   6
+#define DATAPIN2    10
+#define DATAPIN1    11
+#define CLOCKPIN2   13
+#define CLOCKPIN1   13
 
 // -------------------------------------------------------------------------
 

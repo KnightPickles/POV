@@ -37,10 +37,10 @@ typedef uint16_t line_t;
 #include "let.h"
 
 #define HALLPIN     8
-#define DATAPIN1    3
-#define CLOCKPIN1   4
-#define DATAPIN2    5
-#define CLOCKPIN2   6
+#define DATAPIN2    10
+#define DATAPIN1    11
+#define CLOCKPIN2   13
+#define CLOCKPIN1   13
 
 Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
 Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
@@ -80,10 +80,9 @@ void setup() {
 
   // Enable specialized pin intterupts 
   enableInterruptPin(HALLPIN);
-  //enableInterruptPin(IRPIN);
 
-  strip1.setBrightness(50);
-  strip2.setBrightness(50);
+  //strip1.setBrightness(50);
+  //strip2.setBrightness(50);
 }
 
 // Initialize global image state for current imageNumber
@@ -169,7 +168,6 @@ void loop() {
       }
     }
   }
-
   strip1.show();   
   strip2.show();
 }
