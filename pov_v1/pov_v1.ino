@@ -42,8 +42,8 @@ typedef uint16_t line_t;
 #define CLOCKPIN2   13
 #define CLOCKPIN1   13
 
-Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
-Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
+Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS / 2, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
+Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS / 2, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
 
 volatile uint32_t rps, // revolution per second
                   revolutions,
@@ -81,8 +81,8 @@ void setup() {
   // Enable specialized pin intterupts 
   enableInterruptPin(HALLPIN);
 
-  //strip1.setBrightness(50);
-  //strip2.setBrightness(50);
+  strip1.setBrightness(50);
+  strip2.setBrightness(50);
 }
 
 // Initialize global image state for current imageNumber
@@ -102,6 +102,30 @@ void imageInit() {
 
 
 void loop() {
+  for(int i = 0; i < 1000; i++) {
+    if(i < halfLEDS) { // For LED strip 1
+      x = halfLEDS + i * icos(degPos);
+      y = halfLEDS + i * isin(degPos);
+    } else { // For LED strip 2
+      x = halfLEDS + (i - halfLEDS) * icos(degPos + 180);
+      y = halfLEDS + (i - halfLEDS) * isin(degPos + 180);
+    }
+
+    // No idea why these are needed to offset the image into the center
+    x-=2;
+    y--;
+ 
+    pixNode = int(x + y * NUM_LEDS) + 1; 
+    ptr = (uint32_t *)&imagePixels[pixNode / 8]; // get the batch of pixels this pixel is in
+    p = pgm_read_byte(ptr);
+    p >>= pixNode % 8; // shift over to the bit we want 
+    p &= 1; // color index for 0 or 1
+    if(i < halfLEDS) 
+      strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
+    else strip2.setPixelColor(i - halfLEDS, palette[p][0], palette[p][1], palette[p][2]);
+    break;
+  }
+  
   // Convert angular velocity into degrees at any given point in time
   degPos = ((micros() - hallStart) * 360) / revolutionDelta; 
     

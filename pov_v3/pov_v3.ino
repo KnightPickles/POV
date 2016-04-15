@@ -37,7 +37,7 @@ typedef uint16_t line_t;
 
 // CONFIGURABLE STUFF ------------------------------------------------------
 
-#include "letter14p.h" // Graphics data is contained in this header file.
+#include "testp.h" // Graphics data is contained in this header file.
 // It's generated using the 'convert.py' Python script.  Various image
 // formats are supported, trading off color fidelity for PROGMEM space.
 // Handles 1-, 4- and 8-bit-per-pixel palette-based images, plus 24-bit
@@ -59,16 +59,8 @@ typedef uint16_t line_t;
 
 // -------------------------------------------------------------------------
 
-#if defined(LED_DATA_PIN) && defined(LED_CLOCK_PIN)
-// Older DotStar LEDs use GBR order.  If colors are wrong, edit here.
-Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS,
-  DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
-Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS,
-  DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
-#else
-Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS, DOTSTAR_BGR); 
-Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS, DOTSTAR_BGR); 
-#endif
+Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
+Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
 
 void     imageInit(void);
 
@@ -133,6 +125,9 @@ void imageInit() { // Initialize global image state for current imageNumber
   if(imageType == PALETTE1)      memcpy_P(palette, imagePalette,  2 * 3);
   else if(imageType == PALETTE4) memcpy_P(palette, imagePalette, 16 * 3);
   lastImageTime = millis(); // Save time of image init for next auto-cycle
+
+  strip1.setBrightness(50);
+  strip2.setBrightness(50);
 }
 
 void nextImage(void) {
@@ -154,7 +149,7 @@ void loop() {
   imageLine2 = (imageLines * (degPos + pideg)) / pi2deg;
   if(imageLine2 > imageLines) imageLine2 -= imageLines; // wrap
   
-
+  
   // Transfer one scanline from pixel data to LED strip:
 
   // If you're really pressed for graphics space and need just a few extra
@@ -261,9 +256,14 @@ void loop() {
   }
 
   //if(++imageLine >= imageLines) imageLine = 0; // Next scanline, wrap around
+  for(int i = NUM_LEDS; i < 59; i++) {
+    strip1.setPixelColor(i,0,0,0);
+    strip2.setPixelColor(i,0,0,0);
+  }
 
   strip1.show(); // Refresh LEDs
   strip2.show();
+
   lastLineTime = t;
 }
 
