@@ -50,10 +50,9 @@ volatile uint32_t rps, // revolution per second
                   revolutionDelta, // Time of a single revolution
                   rpsAccumulator, // Accumulates individual revolution time for calculating rps 
                   hallStart; // The time in millis when the hall sensor was last detected
-double px, py, percent, radPos, degPos, pi = 3.14159, pi2 = 2 * pi, dpi = 180, dpi2 = 360; 
 uint32_t *ptr, pixNode;
-uint8_t r, g, b, p, x, y;
-int halfLEDS = NUM_LEDS / 2;
+uint16_t degPos, dpi = 180, dpi2 = 360; 
+uint8_t r, g, b, p, x, y, halfLEDS = NUM_LEDS / 2;
 
 uint8_t  imageNumber   = 0,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
@@ -104,11 +103,11 @@ void imageInit() {
 void loop() {
   for(int i = 0; i < 1000; i++) {
     if(i < halfLEDS) { // For LED strip 1
-      x = halfLEDS + i * icos(degPos);
-      y = halfLEDS + i * isin(degPos);
+      x = halfLEDS + 4 * cos(degPos);
+      y = halfLEDS + 4 * sin(degPos);
     } else { // For LED strip 2
-      x = halfLEDS + (i - halfLEDS) * icos(degPos + 180);
-      y = halfLEDS + (i - halfLEDS) * isin(degPos + 180);
+      x = halfLEDS + (4 - halfLEDS) * cos(degPos + 180);
+      y = halfLEDS + (4 - halfLEDS) * sin(degPos + 180);
     }
 
     // No idea why these are needed to offset the image into the center
@@ -117,13 +116,12 @@ void loop() {
  
     pixNode = int(x + y * NUM_LEDS) + 1; 
     ptr = (uint32_t *)&imagePixels[pixNode / 8]; // get the batch of pixels this pixel is in
-    p = pgm_read_byte(ptr);
+    p = pgm_read_byte(ptr); 
     p >>= pixNode % 8; // shift over to the bit we want 
     p &= 1; // color index for 0 or 1
-    if(i < halfLEDS) 
+    /*if(i < halfLEDS) 
       strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
-    else strip2.setPixelColor(i - halfLEDS, palette[p][0], palette[p][1], palette[p][2]);
-    break;
+    else strip2.setPixelColor(i - halfLEDS, palette[p][0], palette[p][1], palette[p][2]);*/
   }
   
   // Convert angular velocity into degrees at any given point in time
