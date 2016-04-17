@@ -34,7 +34,7 @@
 typedef uint16_t line_t; 
 
 #include "trigtable.h"
-#include "let.h"
+#include "letter14.h"
 
 #define HALLPIN     8
 #define DATAPIN2    10
@@ -101,6 +101,8 @@ void imageInit() {
 
 
 void loop() {
+  // dummy calculations to test speed of trinket versus dot-star led strip
+  // palette 1 algorithm : try to address 500 LED long strip (2 strips)
   for(int i = 0; i < 1000; i++) {
     if(i < halfLEDS) { // For LED strip 1
       x = halfLEDS + 4 * cos(degPos);

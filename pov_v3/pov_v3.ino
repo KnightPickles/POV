@@ -1,31 +1,29 @@
-/*------------------------------------------------------------------------
-  POV LED double staff sketch.  Uses the following Adafruit parts
-  (X2 for two staffs):
-
-  - Pro Trinket 5V https://www.adafruit.com/product/2000
-  - 2200 mAh Lithium Ion Battery https://www.adafruit.com/product/1781
-  - LiPoly Backpack https://www.adafruit.com/product/2124
-  - Tactile On/Off Switch with Leads https://www.adafruit.com/product/1092
-  - 144 LED/m DotStar strip (#2328 or #2329)
-    (ONE METER is enough for ONE STAFF, TWO METERS for TWO staffs)
-  - Infrared Sensor: https://www.adafruit.com/product/157
-  - Mini Remote Control: https://www.adafruit.com/product/389
-    (only one remote is required for multiple staffs)
-
-  Needs Adafruit_DotStar library: github.com/adafruit/Adafruit_DotStar
-
-  This is based on the LED poi code (also included in the repository),
-  but ATtiny-specific code has been stripped out for brevity, since the
-  staffs pretty much require Pro Trinket or better (lots more LEDs here).
-
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit and open-source hardware by purchasing
-  products from Adafruit!
-
-  Written by Phil Burgess / Paint Your Dragon for Adafruit Industries.
-  MIT license, all text above must be included in any redistribution.
-  See 'COPYING' file for additional notes.
-  ------------------------------------------------------------------------*/
+/* Portions of code taken from Adafruit's double-staff project:
+ * https://learn.adafruit.com/pov-dotstar-double-staff?view=all
+ *  
+ * Written by Zachary Yama for the 2015-16 University of Idaho senior capstone project with 
+ * client Dr. Rinker and lead instructors Bruce Bolden and Dan Cordone.
+ * 
+ * Project Start: 3/6/2016
+ * Requirements: Adafruit_DotStar lib: github.com/adafruit/Adafruit_DotStar
+ * 
+ * Displays a POV image given an array of pixel data from graphics.h 
+ * 
+ * NOTE: Pin change interrupt code can be used to set any pin as an interrupt. See functions 
+ * for more details. Likely useful for wireless communication when its time to add it, as the 
+ * trinket pro only has one physical interrupt on pin 3 (INT1). 
+ * 
+ * "graphics.h" is auto-generated from the python script "convert.py". It takes a set of images
+ * in its directory and re-formats their data into pixel and corresponding pallate arrays. They
+ * are converted into as few bytes as possible so that few-colored images can fit on the trinket's
+ * 28k memory. SPI calls are used to access the program-space as if it were flash storage. 
+ * 
+ * It's also worth mentioning that there's a visibly noticable difference in the refresh rate
+ * of processing 120 LEDs versus 14 on the prototype. Particularly when using halldemo.ino, 
+ * which displays two colored half-circles, the dividing line between the colors is much larger 
+ * with 120, versus 14. 
+ * 
+ */
 
 #include <Arduino.h>
 #include <Adafruit_DotStar.h>
@@ -37,7 +35,7 @@ typedef uint16_t line_t;
 
 // CONFIGURABLE STUFF ------------------------------------------------------
 
-#include "testp.h" // Graphics data is contained in this header file.
+#include "letter14p.h" // Graphics data is contained in this header file.
 // It's generated using the 'convert.py' Python script.  Various image
 // formats are supported, trading off color fidelity for PROGMEM space.
 // Handles 1-, 4- and 8-bit-per-pixel palette-based images, plus 24-bit
@@ -83,8 +81,7 @@ volatile uint32_t rps, // revolution per second
                   rpsAccumulator, // Accumulates individual revolution time for calculating rps 
                   hallStart; // The time in millis when the hall sensor was last detected
 
-float x, y, px, py, percent, radPos, degPos, pi = 3.14159;
-int pideg = 180, pi2deg = 360, pi3deg = pideg + pi2deg;
+uint16_t degPos, pideg = 180, pi2deg = 360;
 
 
 uint32_t lastImageTime = 0L, // Time of last image change
@@ -140,24 +137,42 @@ void prevImage(void) {
   imageInit();
 }
 
-// MAIN LOOP ---------------------------------------------------------------
-
 void loop() {
   uint32_t t = millis(); // Current time, milliseconds
   degPos = ((millis() - hallStart) * pi2deg) / revolutionDelta; 
   imageLine1 = (imageLines * degPos) / pi2deg;
   imageLine2 = (imageLines * (degPos + pideg)) / pi2deg;
   if(imageLine2 > imageLines) imageLine2 -= imageLines; // wrap
+
+
+  // dummy calculations to test speed of trinket versus dot-star led strip
+  // palette 1 algorithm : try to address 500 LED long strip (2 strips)
+  //strip 1
+  uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
+          *ptr = (uint8_t *)&imagePixels[imageLine1 * 500 / 8];
+  for(byteNum = 500/8; byteNum--; ) { // Always padded to next byte
+    pixels = pgm_read_byte(ptr++);  // 8 pixels of data (pixel 0 = LSB)
+    for(bitNum = 8; bitNum--; pixels >>= 1) {
+      idx = pixels & 1; // Color table index for pixel (0 or 1)
+      //strip1.setPixelColor(pixelNum++,
+      //  palette[idx][0], palette[idx][1], palette[idx][2]);
+    }
+  }
+
+  //strip 2
+  pixelNum = 0;
+  ptr = (uint8_t *)&imagePixels[imageLine2 * 500 / 8];
+  for(byteNum = 500/8; byteNum--; ) { // Always padded to next byte
+    pixels = pgm_read_byte(ptr++);  // 8 pixels of data (pixel 0 = LSB)
+    for(bitNum = 8; bitNum--; pixels >>= 1) {
+      idx = pixels & 1; // Color table index for pixel (0 or 1)
+      //strip2.setPixelColor(pixelNum++,
+      //  palette[idx][0], palette[idx][1], palette[idx][2]);
+    }
+  }
   
   
   // Transfer one scanline from pixel data to LED strip:
-
-  // If you're really pressed for graphics space and need just a few extra
-  // scanlines, and know for a fact you won't be using certain image modes,
-  // you can comment out the corresponding blocks below.  e.g. disabling
-  // PALETTE8 and TRUECOLOR support can free up nearly 200 bytes of extra
-  // image storage.
-
   switch(imageType) {
 
     case PALETTE1: { // 1-bit (2 color) palette-based image
@@ -274,22 +289,6 @@ void enableInterruptPin(byte pin) {
     *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
     PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
     PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
-}
-
-// Puts microcontroller to sleep. Wake on interrupt. 
-void sleep() {
-  // Sleep states
-  // SLEEP_MODE_IDLE
-  // SLEEP_MODE_ADC
-  // SLEEP_MODE_PWR_SAVE
-  // SLEEP_MODE_STANDBY
-  // SLEEP_MODE_PWR_DOWN 
-  
-  set_sleep_mode(SLEEP_MODE_IDLE); // Set sleep mode.
-  sleep_enable(); // Enable sleep mode.
-  sleep_mode(); // Enter sleep mode.
-  // Point of interrupt waking and resuming instruction execution
-  sleep_disable(); // Disable sleep mode after waking.
 }
 
 // handle pin change interrupt for D0 to D7 
