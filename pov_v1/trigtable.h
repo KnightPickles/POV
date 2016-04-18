@@ -1,7 +1,7 @@
 // trigtable.h
 
 // 182 bytes
-uint16_t isinTable16[] = { 
+unsigned int isinTable16[] = { 
   0, 1144, 2287, 3430, 4571, 5712, 6850, 7987, 9121, 10252, 11380, 
   12505, 13625, 14742, 15854, 16962, 18064, 19161, 20251, 21336, 22414, 
   23486, 24550, 25607, 26655, 27696, 28729, 29752, 30767, 31772, 32768, 
@@ -19,24 +19,19 @@ float isin(long x) {
    x = -x;
    pos = !pos;  
   }  
-  if (x >= 360) x %= 360; // slows stuff down but not by much
+  if (x >= 360) x %= 360;   
   if (x > 180) { // begin shortcutting to 90*
    x -= 180;
    pos = !pos;
   }
   if (x > 90) x = 180 - x; // shortcut to 90*
-  if (pos) return isinTable16[x] * 0.0000152590219; // /= 65535.0 <-- performance tanks
-  return -isinTable16[x] * 0.0000152590219; //<-- performance tanks
-  //return isinTable16[x]; // <-- performance tanks
-  //return 42021 * -0.0000152590219; // <-- this is just as fast as return 10
-  //return 10; // <-- very fast, no performance drop
-  //return x; 
-  //return 10;
+  if (pos) return isinTable16[x] * 0.0000152590219; // /= 65535.0
+  return isinTable16[x] * -0.0000152590219 ;
 }
 
 float icos(long x) { return isin(x+90); }
 
-int itan(long x) { return isin(x) / icos(x); }
+float itan(long x) { return isin(x) / icos(x); }
 
 float fsin(float d) {
   float a = isin(d);
