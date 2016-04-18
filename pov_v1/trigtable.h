@@ -13,7 +13,7 @@ uint16_t isinTable16[] = {
   64728, 64897, 65047, 65176, 65286, 65375, 65445, 65495, 65525, 65535, 
 }; 
 
-int isin(long x) {
+uint16_t isin(long x) {
   boolean pos = true;  // track sign
   if (x < 0) {
    x = -x;
@@ -27,7 +27,7 @@ int isin(long x) {
   if (x > 90) x = 180 - x; // shortcut to 90*
   //if (pos) return isinTable16[x];// * 0.0000152590219; // /= 65535.0 <-- performance tanks
   //return -isinTable16[x]; // * 0.0000152590219; <-- performance tanks
-  return isinTable16[x]; // <-- performance tanks
+  //return isinTable16[x]; // <-- performance tanks
   //return 42021 * -0.0000152590219; // <-- this is just as fast as return 10
   //return 10; // <-- very fast, no performance drop
 }
