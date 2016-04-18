@@ -93,29 +93,31 @@ void imageInit() {
   imagePixels  = (uint8_t *)pgm_read_word(&images[imageNumber].pixels);
   // 1- and 4-bit images have their color palette loaded into RAM both for
   // faster access and to allow dynamic color changing.  Not done w/8-bit
-  // because that would require inordinate RAM (328P could handle it, but
-  // I'd rather keep the RAM free for other features in the future).
+  // because that would require inordinate RAM
   if(imageType == PALETTE1)      memcpy_P(palette, imagePalette,  2 * 3);
   else if(imageType == PALETTE4) memcpy_P(palette, imagePalette, 16 * 3);
 }
 
-
 void loop() {
+  // Convert angular velocity into degrees at any given point in time
+  degPos = ((micros() - hallStart) * 360) / revolutionDelta; 
+  
   // dummy calculations to test speed of trinket versus dot-star led strip
   // palette 1 algorithm : try to address 500 LED long strip (2 strips)
   for(int i = 0; i < 1000; i++) {
     if(i < halfLEDS) { // For LED strip 1
-      x = halfLEDS + 4 * cos(degPos);
-      y = halfLEDS + 4 * sin(degPos);
+      x = halfLEDS + 4 * icos(degPos);
+      y = halfLEDS + 4 * isin(degPos);
     } else { // For LED strip 2
-      x = halfLEDS + (4 - halfLEDS) * cos(degPos + 180);
-      y = halfLEDS + (4 - halfLEDS) * sin(degPos + 180);
+      x = halfLEDS + (4 - halfLEDS) * icos(degPos + 180);
+      y = halfLEDS + (4 - halfLEDS) * isin(degPos + 180);
     }
 
     // No idea why these are needed to offset the image into the center
     x-=2;
     y--;
- 
+
+    //palette 1
     pixNode = int(x + y * NUM_LEDS) + 1; 
     ptr = (uint32_t *)&imagePixels[pixNode / 8]; // get the batch of pixels this pixel is in
     p = pgm_read_byte(ptr); 
@@ -125,9 +127,6 @@ void loop() {
       strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
     else strip2.setPixelColor(i - halfLEDS, palette[p][0], palette[p][1], palette[p][2]);*/
   }
-  
-  // Convert angular velocity into degrees at any given point in time
-  degPos = ((micros() - hallStart) * 360) / revolutionDelta; 
     
   for(int i = 0; i < NUM_LEDS; i++) {  
     if(i < halfLEDS) { // For LED strip 1
@@ -224,5 +223,3 @@ ISR (PCINT0_vect) {
 
 // handle pin change interrupt for A0 to A5
 ISR (PCINT1_vect) { }
-
-

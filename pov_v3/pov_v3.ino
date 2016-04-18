@@ -117,8 +117,7 @@ void imageInit() { // Initialize global image state for current imageNumber
   imagePixels  = (uint8_t *)pgm_read_word(&images[imageNumber].pixels);
   // 1- and 4-bit images have their color palette loaded into RAM both for
   // faster access and to allow dynamic color changing.  Not done w/8-bit
-  // because that would require inordinate RAM (328P could handle it, but
-  // I'd rather keep the RAM free for other features in the future).
+  // because that would require inordinate RAM
   if(imageType == PALETTE1)      memcpy_P(palette, imagePalette,  2 * 3);
   else if(imageType == PALETTE4) memcpy_P(palette, imagePalette, 16 * 3);
   lastImageTime = millis(); // Save time of image init for next auto-cycle
