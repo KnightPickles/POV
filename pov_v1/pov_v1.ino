@@ -34,7 +34,7 @@
 typedef uint16_t line_t; 
 
 #include "trigtable.h"
-#include "letter14.h"
+#include "graphics14.h"
 
 #define HALLPIN     8
 #define DATAPIN2    10
@@ -74,7 +74,7 @@ void setup() {
   imageInit();   // Initialize pointers for default image
 
   // Initialize image stabilizing variables
-  revolutionDelta = hallStart = micros();
+  revolutionDelta = hallStart = millis();
   rps = rpsAccumulator = revolutions = 0; 
 
   // Enable specialized pin intterupts 
@@ -100,11 +100,11 @@ void imageInit() {
 
 void loop() {
   // Convert angular velocity into degrees at any given point in time
-  degPos = ((micros() - hallStart) * 360) / revolutionDelta; 
+  degPos = ((millis() - hallStart) * 360) / revolutionDelta; 
   
   // dummy calculations to test speed of trinket versus dot-star led strip
   // palette 1 algorithm : try to address 500 LED long strip (2 strips)
-  for(int i = 0; i < 1000; i++) {
+  /*for(int i = 0; i < 1000; i++) {
     if(i < halfLEDS) { // For LED strip 1
       x = halfLEDS + 4 * icos(degPos);
       y = halfLEDS + 4 * isin(degPos);
@@ -126,7 +126,7 @@ void loop() {
     /*if(i < halfLEDS) 
       strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
     else strip2.setPixelColor(i - halfLEDS, palette[p][0], palette[p][1], palette[p][2]);*/
-  }
+  //}
     
   for(int i = 0; i < NUM_LEDS; i++) {  
     if(i < halfLEDS) { // For LED strip 1
@@ -211,8 +211,8 @@ ISR (PCINT2_vect) { }
 ISR (PCINT0_vect) { 
   if(digitalRead(HALLPIN) == LOW) { // hall sensor interrupt; update timings
     revolutions++;
-    revolutionDelta = micros() - hallStart; 
-    hallStart = micros();
+    revolutionDelta = millis() - hallStart; 
+    hallStart = millis();
     rpsAccumulator += revolutionDelta; 
     if(rpsAccumulator >= 1000) { // Dealing in milliseconds
       rps = rpsAccumulator / 1000; 

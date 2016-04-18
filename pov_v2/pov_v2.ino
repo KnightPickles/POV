@@ -109,8 +109,8 @@ void imageInit() {
 
 void updloop() {
   // Convert angular velocity into radial coordinates at any given point in time
-  /*radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta; 
-  double x = (60 * radPos) / 2 * pi;
+  radPos = ((millis() - hallStart) * pi * 2) / revolutionDelta; 
+  /*double x = (60 * radPos) / 2 * pi;
   if(x <= (int)x + 0.05) {
     strip1.show();   
     strip2.show();
@@ -147,7 +147,8 @@ void updloop() {
     }
   }
 
-  
+  strip1.show();   
+    strip2.show();
 }
 
 
