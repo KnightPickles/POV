@@ -35,7 +35,7 @@ typedef uint16_t line_t;
 
 // CONFIGURABLE STUFF ------------------------------------------------------
 
-#include "letter14p.h" // Graphics data is contained in this header file.
+#include "letter14-360p.h" // Graphics data is contained in this header file.
 // It's generated using the 'convert.py' Python script.  Various image
 // formats are supported, trading off color fidelity for PROGMEM space.
 // Handles 1-, 4- and 8-bit-per-pixel palette-based images, plus 24-bit
