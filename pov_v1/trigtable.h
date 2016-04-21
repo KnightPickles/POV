@@ -13,25 +13,44 @@ unsigned int isinTable16[] = {
   64728, 64897, 65047, 65176, 65286, 65375, 65445, 65495, 65525, 65535, 
 }; 
 
-float isin(long x) {
+// 91 bytes 
+uint8_t isinTable8[] = { 
+  0, 4, 9, 13, 18, 22, 27, 31, 35, 40, 44, 
+  49, 53, 57, 62, 66, 70, 75, 79, 83, 87, 
+  91, 96, 100, 104, 108, 112, 116, 120, 124, 128, 
+  131, 135, 139, 143, 146, 150, 153, 157, 160, 164, 
+  167, 171, 174, 177, 180, 183, 186, 190, 192, 195, 
+  198, 201, 204, 206, 209, 211, 214, 216, 219, 221, 
+  223, 225, 227, 229, 231, 233, 235, 236, 238, 240, 
+  241, 243, 244, 245, 246, 247, 248, 249, 250, 251, 
+  252, 253, 253, 254, 254, 254, 255, 255, 255, 255, 
+}; 
+
+//uint8_t bur = 210;
+
+// float isin long x is very slow
+uint16_t isin(uint16_t x) {
   boolean pos = true;  // track sign
   if (x < 0) {
    x = -x;
    pos = !pos;  
   }  
-  if (x >= 360) x %= 360;   
+  if (x >= 360) x %= 360;  // very slow 
   if (x > 180) { // begin shortcutting to 90*
    x -= 180;
    pos = !pos;
   }
   if (x > 90) x = 180 - x; // shortcut to 90*
+  //return 210 / 255; // <-- super fast; array lookup is slow
+  //if (pos) return isinTable8[x] / 255; //* 0.003921568627; // = /255.0 is faster
+  //return isinTable8[x] / 255; //* -0.003921568627 ;
   if (pos) return isinTable16[x] * 0.0000152590219; // /= 65535.0
   return isinTable16[x] * -0.0000152590219 ;
 }
 
-float icos(long x) { return isin(x+90); }
+uint16_t icos(uint16_t x) { return isin(x+90); }
 
-float itan(long x) { return isin(x) / icos(x); }
+uint16_t itan(uint16_t x) { return isin(x) / icos(x); }
 
 float fsin(float d) {
   float a = isin(d);

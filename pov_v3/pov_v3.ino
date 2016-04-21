@@ -35,7 +35,7 @@ typedef uint16_t line_t;
 
 // CONFIGURABLE STUFF ------------------------------------------------------
 
-#include "letter14-360p.h" // Graphics data is contained in this header file.
+#include "letter118-360p-test.h" // Graphics data is contained in this header file.
 // It's generated using the 'convert.py' Python script.  Various image
 // formats are supported, trading off color fidelity for PROGMEM space.
 // Handles 1-, 4- and 8-bit-per-pixel palette-based images, plus 24-bit
@@ -55,8 +55,7 @@ typedef uint16_t line_t;
 #define CLOCKPIN2   13
 #define CLOCKPIN1   13
 
-// -------------------------------------------------------------------------
-
+// Max LED count is around 100 per strip before things become absolutely unreadable 
 Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
 Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
 
@@ -83,9 +82,6 @@ volatile uint32_t rps, // revolution per second
 
 uint16_t degPos, pideg = 180, pi2deg = 360;
 
-
-uint32_t lastImageTime = 0L, // Time of last image change
-         lastLineTime  = 0L;
 uint8_t  imageNumber   = 0,  // Current image being displayed
          imageType,          // Image type: PALETTE[1,4,8] or TRUECOLOR
         *imagePalette,       // -> palette data in PROGMEM
@@ -95,19 +91,6 @@ line_t   imageLines,         // Number of lines in active image
          imageLine1,          // Current line number in image
          imageLine2;
 
-// Microseconds per line for various speed settings
-const uint16_t PROGMEM lineTable[] = { // 375 * 2^(n/3)
-  1000000L /  375, // 375 lines/sec = slowest
-  1000000L /  472,
-  1000000L /  595,
-  1000000L /  750, // 750 lines/sec = mid
-  1000000L /  945,
-  1000000L / 1191,
-  1000000L / 1500  // 1500 lines/sec = fastest
-};
-uint8_t  lineIntervalIndex = 3;
-uint16_t lineInterval      = 1000000L / 750;
-
 void imageInit() { // Initialize global image state for current imageNumber
   imageType    = pgm_read_byte(&images[imageNumber].type);
   imageLines   = pgm_read_word(&images[imageNumber].lines);
@@ -116,11 +99,9 @@ void imageInit() { // Initialize global image state for current imageNumber
   imagePalette = (uint8_t *)pgm_read_word(&images[imageNumber].palette);
   imagePixels  = (uint8_t *)pgm_read_word(&images[imageNumber].pixels);
   // 1- and 4-bit images have their color palette loaded into RAM both for
-  // faster access and to allow dynamic color changing.  Not done w/8-bit
-  // because that would require inordinate RAM
+  // faster access and to allow dynamic color changing. 
   if(imageType == PALETTE1)      memcpy_P(palette, imagePalette,  2 * 3);
   else if(imageType == PALETTE4) memcpy_P(palette, imagePalette, 16 * 3);
-  lastImageTime = millis(); // Save time of image init for next auto-cycle
 
   strip1.setBrightness(50);
   strip2.setBrightness(50);
@@ -137,17 +118,17 @@ void prevImage(void) {
 }
 
 void loop() {
-  uint32_t t = millis(); // Current time, milliseconds
   degPos = ((millis() - hallStart) * pi2deg) / revolutionDelta; 
   imageLine1 = (imageLines * degPos) / pi2deg;
   imageLine2 = (imageLines * (degPos + pideg)) / pi2deg;
   if(imageLine2 > imageLines) imageLine2 -= imageLines; // wrap
 
-
-  // dummy calculations to test speed of trinket versus dot-star led strip
-  // palette 1 algorithm : try to address 500 LED long strip (2 strips)
+  /* Dummy calculations that test the speed of a trinket versus a dot-star led strip
+   * It turns out that the LEDs are a limiting factor, esp after 2 strips of 60 LEDs
+   * palette 1 algorithm : try to address 500 LED long strip (2 strips)
+   */
   //strip 1
-  uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
+  /*uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
           *ptr = (uint8_t *)&imagePixels[imageLine1 * 500 / 8];
   for(byteNum = 500/8; byteNum--; ) { // Always padded to next byte
     pixels = pgm_read_byte(ptr++);  // 8 pixels of data (pixel 0 = LSB)
@@ -168,7 +149,7 @@ void loop() {
       //strip2.setPixelColor(pixelNum++,
       //  palette[idx][0], palette[idx][1], palette[idx][2]);
     }
-  }
+  }*/
   
   
   // Transfer one scanline from pixel data to LED strip:
@@ -277,8 +258,6 @@ void loop() {
 
   strip1.show(); // Refresh LEDs
   strip2.show();
-
-  lastLineTime = t;
 }
 
 // ------ Intterupt Functionality ----- //

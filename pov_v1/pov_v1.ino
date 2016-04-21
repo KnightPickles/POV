@@ -104,7 +104,7 @@ void loop() {
   
   // dummy calculations to test speed of trinket versus dot-star led strip
   // palette 1 algorithm : try to address 500 LED long strip (2 strips)
-  /*for(int i = 0; i < 1000; i++) {
+  for(int i = 0; i < 100; i++) {
     if(i < halfLEDS) { // For LED strip 1
       x = halfLEDS + 4 * icos(degPos);
       y = halfLEDS + 4 * isin(degPos);
@@ -126,7 +126,7 @@ void loop() {
     /*if(i < halfLEDS) 
       strip1.setPixelColor(i, palette[p][0], palette[p][1], palette[p][2]);
     else strip2.setPixelColor(i - halfLEDS, palette[p][0], palette[p][1], palette[p][2]);*/
-  //}
+  }
     
   for(int i = 0; i < NUM_LEDS; i++) {  
     if(i < halfLEDS) { // For LED strip 1
