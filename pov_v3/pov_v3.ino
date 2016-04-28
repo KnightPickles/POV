@@ -59,7 +59,7 @@ typedef uint16_t line_t;
 Adafruit_DotStar strip1 = Adafruit_DotStar(NUM_LEDS, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
 Adafruit_DotStar strip2 = Adafruit_DotStar(NUM_LEDS, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
 
-void     imageInit(void);
+void imageInit(void);
 
 void setup() {
   strip1.begin(); // Allocate DotStar buffer, init SPI
@@ -128,12 +128,16 @@ void loop() {
    * palette 1 algorithm : try to address 500 LED long strip (2 strips)
    */
   //strip 1
-  /*uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
+  /*uint8_t  r, g, b;
+  uint8_t  pixelNum = 0, byteNum, bitNum, pixels, idx,
           *ptr = (uint8_t *)&imagePixels[imageLine1 * 500 / 8];
   for(byteNum = 500/8; byteNum--; ) { // Always padded to next byte
     pixels = pgm_read_byte(ptr++);  // 8 pixels of data (pixel 0 = LSB)
     for(bitNum = 8; bitNum--; pixels >>= 1) {
       idx = pixels & 1; // Color table index for pixel (0 or 1)
+      r = palette[idx][0];
+      b = palette[idx][1];
+      g = palette[idx][2];
       //strip1.setPixelColor(pixelNum++,
       //  palette[idx][0], palette[idx][1], palette[idx][2]);
     }
@@ -146,6 +150,9 @@ void loop() {
     pixels = pgm_read_byte(ptr++);  // 8 pixels of data (pixel 0 = LSB)
     for(bitNum = 8; bitNum--; pixels >>= 1) {
       idx = pixels & 1; // Color table index for pixel (0 or 1)
+      r = palette[idx][0];
+      b = palette[idx][1];
+      g = palette[idx][2];
       //strip2.setPixelColor(pixelNum++,
       //  palette[idx][0], palette[idx][1], palette[idx][2]);
     }

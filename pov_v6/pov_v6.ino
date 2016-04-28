@@ -107,11 +107,11 @@ void loop() {
   // palette 1 algorithm : try to address 500 LED long strip (2 strips)
   for(int i = 0; i < 100; i++) {
     if(i < halfLEDS) { // For LED strip 1
-      x = halfLEDS + 4 * icos(degPos);
-      y = halfLEDS + 4 * isin(degPos);
+      x = halfLEDS + 4 * tcos(degPos);
+      y = halfLEDS + 4 * tsin(degPos);
     } else { // For LED strip 2
-      x = halfLEDS + (4 - halfLEDS) * icos(degPos + 180);
-      y = halfLEDS + (4 - halfLEDS) * isin(degPos + 180);
+      x = halfLEDS + (4 - halfLEDS) * tcos(degPos + 180);
+      y = halfLEDS + (4 - halfLEDS) * tsin(degPos + 180);
     }
 
     // No idea why these are needed to offset the image into the center
@@ -128,13 +128,13 @@ void loop() {
     
   for(int i = 0; i < NUM_LEDS; i++) {  
     if(i < halfLEDS) { // For LED strip 1
-      x = halfLEDS + i * icos(degPos);
-      y = halfLEDS + i * isin(degPos);
+      x = halfLEDS + i * tcos(degPos);
+      y = halfLEDS + i * tsin(degPos);
     } else { // For LED strip 2
       //x = halfLEDS + (i - halfLEDS) * tcos(degPos + 180);
       //y = halfLEDS + (i - halfLEDS) * tsin(degPos + 180);
-      x = halfLEDS + (i - halfLEDS) * icos(degPos + pi);
-      y = halfLEDS + (i - halfLEDS) * isin(degPos + pi);
+      x = halfLEDS + (i - halfLEDS) * tcos(degPos + pi);
+      y = halfLEDS + (i - halfLEDS) * tsin(degPos + pi);
     }
 
     // No idea why these are needed to offset the image into the center
